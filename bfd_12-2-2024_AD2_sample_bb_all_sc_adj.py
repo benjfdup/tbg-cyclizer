@@ -1,0 +1,173 @@
+import tqdm
+import torch
+import numpy as np
+import mdtraj as md
+from bgflow.utils import as_numpy
+from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution
+from bgflow import BlackBoxDynamics, BruteForceEstimator
+from tbg.models2 import EGNN_dynamics_AD2_cat
+from bgflow import BlackBoxDynamics, BruteForceEstimator
+
+from bfd_conditionals import scaling_factor, initialize_cyclization_loss, amino_dict, atom_types_ecoding
+
+
+scale_factor = scaling_factor
+
+topology = md.load_topology(
+        "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb" # encodes the bond topology of the atoms encoded.
+)
+
+# Count the number of residues in the topology
+num_residues = len(list(topology.residues))
+
+n_particles = len(list(topology.atoms)) # number of atoms in the given dipeptide. Should be 177(?)
+n_dimensions = 3
+dim = n_particles * n_dimensions
+
+atom_types = []
+amino_idx = []
+amino_types = []
+
+for i, amino in enumerate(topology.residues): # looping over the individual amino acids in the dipeptide.
+
+    # data cleaning loop
+    for atom_name in amino.atoms:
+        amino_idx.append(i) # will end up being of shape (n, ), where n is the total number of atoms. Each index represents
+            
+        # whether the atom is in the first or second amino acid of the dipeptide.
+        amino_types.append(amino_dict[amino.name])
+
+        if atom_name.name[0] == "H" and atom_name.name[-1] in ("1", "2", "3"):
+            if amino_dict[amino.name] in (8, 13, 17, 18) and atom_name.name[:2] in (
+                "HE",
+                "HD",
+                "HZ",
+                "HH",
+            ):
+                pass
+            else:
+                atom_name.name = atom_name.name[:-1]
+        if atom_name.name[:2] == "OE" or atom_name.name[:2] == "OD": # cleaning specific kinds of oxygen (per tbg paper)
+            atom_name.name = atom_name.name[:-1]
+        atom_types.append(atom_name.name)
+    
+atom_types = np.array([atom_types_ecoding[atom_type] for atom_type in atom_types])
+# encodes information on the atom type, as well as its place in the amino acid
+# encodes values 0 - 53, inclusive.
+
+atom_onehot = torch.nn.functional.one_hot( # converts each atom type to a one hot encoding.
+    torch.tensor(atom_types), num_classes=len(atom_types_ecoding) # 55 classes. changes with ecoding.
+) # makes a tensor of shape (n, 54), where n is the number of atoms in the dipeptide, and 54 is the number of atom types.
+
+amino_idx_onehot = torch.nn.functional.one_hot( # encodes the position as a 1-hot vector. Note that num_classes = 2 because
+    torch.tensor(amino_idx), num_classes=num_residues
+) # encodes the position as a 1-hot vector. Note that num_classes = 2 because we are only working with di-peptides here...
+
+amino_types_onehot = torch.nn.functional.one_hot(
+    torch.tensor(amino_types), num_classes=len(amino_dict)
+) 
+# one hot encoding of the amino acid type. 20 different kinds of amino acid,
+# hence, 20 classes.
+# of shape (n, 20), where n is the number of atoms and 20 is the number of amino acid classes here...
+
+h_initial = torch.cat(
+    [amino_idx_onehot, amino_types_onehot, atom_onehot], dim=1 # concatinates all of this information along the first axis
+        # ie: along each atom. Therefore h_dict[peptide] is ultimately of shape: (n, 54 + 2 + 20)
+        # or, put another way, h_dict[peptide] is of shape (n, len(atom_types_ecoding) + aa_length + #_of_amino_acids)
+)
+
+# now set up a prior
+prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda()
+prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
+
+brute_force_estimator = BruteForceEstimator()
+net_dynamics = EGNN_dynamics_AD2_cat(
+    n_particles=n_particles,
+    device="cuda",
+    n_dimension=dim // n_particles,
+    h_initial=h_initial,
+    hidden_nf=64,
+    act_fn=torch.nn.SiLU(),
+    n_layers=5,
+    recurrent=True,
+    tanh=True,
+    attention=True,
+    condition_time=True,
+    mode="egnn_dynamics",
+    agg="sum",
+)
+
+bb_dynamics = BlackBoxDynamics(
+    dynamics_function=net_dynamics, divergence_estimator=brute_force_estimator
+)
+
+flow = DiffEqFlow(dynamics=bb_dynamics)
+
+bg = BoltzmannGenerator(prior, flow, prior).cuda()
+
+
+class BruteForceEstimatorFast(torch.nn.Module):
+    """
+    Exact bruteforce estimation of the divergence of a dynamics function.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, dynamics, t, xs):
+
+        with torch.set_grad_enabled(True):
+            xs.requires_grad_(True)
+            x = [xs[:, [i]] for i in range(xs.size(1))]
+
+            dxs = dynamics(t, torch.cat(x, dim=1))
+
+            assert len(dxs.shape) == 2, "`dxs` must have shape [n_btach, system_dim]"
+            divergence = 0
+            for i in range(xs.size(1)):
+                divergence += torch.autograd.grad(
+                    dxs[:, [i]], x[i], torch.ones_like(dxs[:, [i]]), retain_graph=True
+                )[0]
+
+        return dxs, -divergence.view(-1, 1)
+
+
+brute_force_estimator_fast = BruteForceEstimatorFast()
+# use OTD in the evaluation process
+bb_dynamics._divergence_estimator = brute_force_estimator_fast
+bg.flow._integrator_atol = 1e-4
+bg.flow._integrator_rtol = 1e-4
+flow._use_checkpoints = False
+flow._kwargs = {}
+
+
+filename = "Flow-Matching-AD2-amber-weighted-encoding"
+
+
+PATH_last = f"models/{filename}"
+checkpoint = torch.load(PATH_last)
+flow.load_state_dict(checkpoint["model_state_dict"])
+
+n_samples = 400
+n_sample_batches = 500
+latent_np = np.empty(shape=(0))
+samples_np = np.empty(shape=(0))
+dlogp_np = np.empty(shape=(0))
+print(f"Start sampling with {filename}")
+
+for i in tqdm.tqdm(range(n_sample_batches)):
+    with torch.no_grad():
+        samples, latent, dlogp = bg.sample(n_samples, with_latent=True, with_dlogp=True)
+        latent_np = np.append(latent_np, latent.detach().cpu().numpy())
+        samples_np = np.append(samples_np, samples.detach().cpu().numpy())
+
+        dlogp_np = np.append(dlogp_np, as_numpy(dlogp))
+
+    latent_np = latent_np.reshape(-1, dim)
+    samples_np = samples_np.reshape(-1, dim)
+    np.savez(
+        f"result_data/{filename}",
+        latent_np=latent_np,
+        samples_np=samples_np,
+        dlogp_np=dlogp_np,
+    )

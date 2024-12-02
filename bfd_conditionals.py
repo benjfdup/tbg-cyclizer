@@ -10,6 +10,90 @@ import sys
 
 ### INSERT PHYSICAL QUANTITIES HERE, AS WELL AS RELEVANT SCALE FACTORS ###
 scaling_factor = 30 # the factor of scaling in question. Will need to account for this, l8r
+
+atom_types_ecoding = {
+    'C': 0, 
+    'CA': 1, 
+    'CB': 2, 
+    'CD': 3, 
+    'CD1': 4, 
+    'CD2': 5, 
+    'CE': 6, 
+    'CE1': 7, 
+    'CE2': 8, 
+    'CE3': 9, 
+    'CG': 10, 
+    'CG1': 11, 
+    'CG2': 12, 
+    'CH2': 13,
+    'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution
+    'CZ': 14, 
+    'CZ2': 15, 
+    'CZ3': 16, 
+    'H': 17, 
+    'HA': 18, 
+    'HB': 19, 
+    'HD': 20, 
+    'HD1': 21, 
+    'HD2': 22, 
+    'HE': 23, 
+    'HE1': 24, 
+    'HE2': 25, 
+    'HE3': 26, 
+    'HG': 27, 
+    'HG1': 28, 
+    'HG2': 29, 
+    'HH': 30, 
+    'HH1': 31, 
+    'HH2': 32, 
+    'HZ': 33, 
+    'HZ2': 34, 
+    'HZ3': 35, 
+    'N': 36, 
+    'ND1': 37, 
+    'ND2': 38, 
+    'NE': 39, 
+    'NE1': 40, 
+    'NE2': 41, 
+    'NH1': 42, 
+    'NH2': 43, 
+    'NZ': 44, 
+    'O': 45, 
+    'OD': 46, 
+    'OE': 47, 
+    'OG': 48, 
+    'OG1': 49, 
+    'OH': 50, 
+    'OXT': 51, 
+    'SD': 52, 
+    'SG': 53,
+    }
+# need to add CL1 to this??
+
+amino_dict = {
+    "ALA": 0,
+    "ARG": 1,
+    "ASN": 2,
+    "ASP": 3,
+    "CYS": 4,
+    "GLN": 5,
+    "GLU": 6,
+    "GLY": 7,
+    "HIS": 8,
+    "ILE": 9,
+    "LEU": 10,
+    "LYS": 11,
+    "MET": 12,
+    "PHE": 13,
+    "PRO": 14,
+    "SER": 15,
+    "THR": 16,
+    "TRP": 17,
+    "TYR": 18,
+    "VAL": 19,
+    "UNK": 20, # need to have a better way of handling this in the future...
+}
+
 ## ^^^ ###
 
 def sq_distance(a1, a2):
@@ -437,12 +521,12 @@ def initialize_cyclization_loss(pdb_path, strategies, alpha=-10):
     def get_atom_indices(residue, atom_names):
         return [all_atom_indices[(residue.index, atom_name)] for atom_name in atom_names]
 
-    if "disulfide" in strategies: # go over this indexing strategy...
+    if "disulfide" in strategies:
         cysteines = [r for r in residue_list if r.name == "CYS"]
         for i in range(len(cysteines)):
             for j in range(i + 1, len(cysteines)):
                 indices = (
-                    get_atom_indices(cysteines[i], ["SG", "CB"]),
+                    get_atom_indices(cysteines[i], ["SG", "CB"]), # go over this indexing strategy...
                     get_atom_indices(cysteines[j], ["SG", "CB"]),
                 )
                 loss_functions.append(lambda pos, i=indices: disulfide_loss(
@@ -523,6 +607,10 @@ def initialize_cyclization_loss(pdb_path, strategies, alpha=-10):
 
     # Closure for loss calculation
     def cyclization_loss(positions):
+        '''
+        Final cyclic loss to be used at runtime. Accepts atom positions as inputs on which to do gradient descent.
+        '''
+
         losses = [loss(positions) for loss in loss_functions]
         return soft_min(*losses, alpha=alpha)
 

@@ -19,6 +19,7 @@ from tqdm import tqdm
 from loguru import logger
 import wandb
 
+from bfd_conditionals import amino_dict, atom_types_ecoding
 import os
 os.makedirs("/home/bfd21/rds/hpc-work/tbg/jobs/job-Nov-28/logs", exist_ok=True)
 
@@ -28,90 +29,6 @@ os.makedirs("/home/bfd21/rds/hpc-work/tbg/jobs/job-Nov-28/logs", exist_ok=True)
 n_particles = 177 # particles in ligand 1
 n_dimensions = 3
 dim = n_particles * n_dimensions
-
-atom_types_ecoding = {
-    'C': 0, 
-    'CA': 1, 
-    'CB': 2, 
-    'CD': 3, 
-    'CD1': 4, 
-    'CD2': 5, 
-    'CE': 6, 
-    'CE1': 7, 
-    'CE2': 8, 
-    'CE3': 9, 
-    'CG': 10, 
-    'CG1': 11, 
-    'CG2': 12, 
-    'CH2': 13,
-    'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution
-    'CZ': 14, 
-    'CZ2': 15, 
-    'CZ3': 16, 
-    'H': 17, 
-    'HA': 18, 
-    'HB': 19, 
-    'HD': 20, 
-    'HD1': 21, 
-    'HD2': 22, 
-    'HE': 23, 
-    'HE1': 24, 
-    'HE2': 25, 
-    'HE3': 26, 
-    'HG': 27, 
-    'HG1': 28, 
-    'HG2': 29, 
-    'HH': 30, 
-    'HH1': 31, 
-    'HH2': 32, 
-    'HZ': 33, 
-    'HZ2': 34, 
-    'HZ3': 35, 
-    'N': 36, 
-    'ND1': 37, 
-    'ND2': 38, 
-    'NE': 39, 
-    'NE1': 40, 
-    'NE2': 41, 
-    'NH1': 42, 
-    'NH2': 43, 
-    'NZ': 44, 
-    'O': 45, 
-    'OD': 46, 
-    'OE': 47, 
-    'OG': 48, 
-    'OG1': 49, 
-    'OH': 50, 
-    'OXT': 51, 
-    'SD': 52, 
-    'SG': 53,
-    }
-# need to add CL1 to this??
-
-amino_dict = {
-    "ALA": 0,
-    "ARG": 1,
-    "ASN": 2,
-    "ASP": 3,
-    "CYS": 4,
-    "GLN": 5,
-    "GLU": 6,
-    "GLY": 7,
-    "HIS": 8,
-    "ILE": 9,
-    "LEU": 10,
-    "LYS": 11,
-    "MET": 12,
-    "PHE": 13,
-    "PRO": 14,
-    "SER": 15,
-    "THR": 16,
-    "TRP": 17,
-    "TYR": 18,
-    "VAL": 19,
-    "UNK": 20, # need to have a better way of handling this in the future...
-}
-atom_dict = {"H": 0, "C": 1, "N": 2, "O": 3, "S": 4}
 
 prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda()
 prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
