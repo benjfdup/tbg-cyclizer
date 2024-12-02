@@ -1,0 +1,19 @@
+# Ignore specific directories
+bfd_models/
+data/
+jobs/
+models/
+result_data/
+
+2AA_evaluation.ipynb
+2AA_sample_tbg_backbone.py
+2AA_sample_tbg_full.py
+2AA_sample_tbg.py
+2AA_train_tbg_backbone.py
+2AA_train_tbg_full.py
+2AA_train_tbg.py
+AD2_classical_sample_backbone.py
+AD2_classical_sample_tbg_full.py
+AD2_classical_evaluation.ipynb
+AD2_classical_train_backbone.py
+AD2_classical_train_tbg_full.py
