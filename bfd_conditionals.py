@@ -398,24 +398,25 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
 
 ### NOW GENERATE THE TOTAL LOSS OF CYCLIZATION FROM A PDB FILE
 
-def calculate_cyclization_losses(pdb_path, strategies):
+def calculate_total_cyclization_loss(pdb_path, strategies, alpha=-10):
     """
-    Calculate losses for various cyclization strategies on a linear peptide from a PDB file.
+    Calculate the total cyclization loss for a linear peptide from a PDB file.
+    The total loss is computed as the soft minimum of individual strategy losses.
 
     Parameters:
     pdb_path (str): Path to the PDB file containing the linear peptide structure.
     strategies (list of str): List of cyclization strategies to compute losses for.
                               Options include "disulfide", "amide", "side_chain_amide",
                               "thioether", "ester", and "hydrazone".
+    alpha (float): Exponent for the soft_min function. Higher magnitude makes it closer to the true minimum.
 
     Returns:
-    dict: Dictionary with strategy names as keys and computed loss values as values.
+    torch.Tensor: Total cyclization loss as a differentiable tensor.
     """
     # Load PDB file using MDTraj
     traj = md.load(pdb_path)
     topology = traj.topology
-    positions = traj.xyz[0] / scaling_factor  # Scale coordinates for compatibility
-    ### NEED TO PROPERLY HANDLE THE SCALING FACTOR, BENJAMIN
+    positions = torch.tensor(traj.xyz[0] / scaling_factor, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
 
     # Helper to extract atom positions by name
     def get_atom_position(residue, atom_name):
@@ -424,90 +425,78 @@ def calculate_cyclization_losses(pdb_path, strategies):
             raise ValueError(f"Atom {atom_name} not found in residue {residue}.")
         return positions[atom[0].index]
 
-    # Initialize a dictionary for losses
-    losses = {}
+    # Define loss computation for each strategy
+    losses = []
 
-    # Iterate over strategies
-    for strategy in strategies:
-        if strategy == "disulfide":
-            # Find pairs of cysteine residues
-            cysteines = [r for r in topology.residues if r.name == "CYS"]
-            if len(cysteines) < 2:
-                losses["disulfide"] = None  # Not applicable
-                continue
+    if "disulfide" in strategies:
+        # Compute disulfide loss
+        cysteines = [r for r in topology.residues if r.name == "CYS"]
+        for i in range(len(cysteines)):
+            for j in range(i + 1, len(cysteines)):
+                cys1_s = get_atom_position(cysteines[i], "SG")
+                cys1_cb = get_atom_position(cysteines[i], "CB")
+                cys2_s = get_atom_position(cysteines[j], "SG")
+                cys2_cb = get_atom_position(cysteines[j], "CB")
+                losses.append(disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb))
 
-            # Compute disulfide losses for all pairs
-            total_loss = 0
-            for i in range(len(cysteines)):
-                for j in range(i + 1, len(cysteines)):
-                    cys1 = cysteines[i]
-                    cys2 = cysteines[j]
-                    cys1_s = get_atom_position(cys1, "SG")
-                    cys1_cb = get_atom_position(cys1, "CB")
-                    cys2_s = get_atom_position(cys2, "SG")
-                    cys2_cb = get_atom_position(cys2, "CB")
-                    total_loss += disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb)
-            losses["disulfide"] = total_loss
+    if "amide" in strategies:
+        # Compute amide loss for backbone bonds
+        residues = [r for r in topology.residues]
+        for i in range(len(residues) - 1):
+            c1 = get_atom_position(residues[i], "C")
+            ca1 = get_atom_position(residues[i], "CA")
+            n2 = get_atom_position(residues[i + 1], "N")
+            h2 = get_atom_position(residues[i + 1], "H")
+            losses.append(amide_loss(c1, ca1, n2, h2))
 
-        elif strategy == "amide":
-            # Use backbone atoms for the amide bond
-            residues = [r for r in topology.residues]
-            if len(residues) < 2:
-                losses["amide"] = None  # Not applicable
-                continue
+    if "side_chain_amide" in strategies:
+        # Compute side-chain amide losses
+        carboxyl_residues = [r for r in topology.residues if r.name in ["ASP", "GLU"]]
+        amine_residues = [r for r in topology.residues if r.name in ["LYS", "ORN"]]
+        for carboxyl in carboxyl_residues:
+            for amine in amine_residues:
+                c_carboxyl = get_atom_position(carboxyl, "CG")
+                carboxyl_anchor = get_atom_position(carboxyl, "CB")
+                n_side_chain = get_atom_position(amine, "NZ")
+                side_chain_anchor = get_atom_position(amine, "CE")
+                losses.append(side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_anchor))
 
-            # Compute amide loss for adjacent residues
-            total_loss = 0
-            for i in range(len(residues) - 1):
-                res1 = residues[i]
-                res2 = residues[i + 1]
-                c1 = get_atom_position(res1, "C")
-                ca1 = get_atom_position(res1, "CA")
-                n2 = get_atom_position(res2, "N")
-                h2 = get_atom_position(res2, "H")  # Optional: May not exist in all PDBs
-                total_loss += amide_loss(c1, ca1, n2, h2)
-            losses["amide"] = total_loss
+    if "thioether" in strategies:
+        # Compute thioether loss
+        sulfur_residues = [r for r in topology.residues if r.name in ["CYS", "MET"]]
+        carbon_residues = [r for r in topology.residues if r.name not in ["CYS", "MET"]]
+        for sulfur in sulfur_residues:
+            for carbon in carbon_residues:
+                sulfur_atom = get_atom_position(sulfur, "SG" if sulfur.name == "CYS" else "SD")
+                sulfur_anchor = get_atom_position(sulfur, "CB")
+                carbon_atom = get_atom_position(carbon, "CG")
+                carbon_anchor = get_atom_position(carbon, "CB")
+                losses.append(thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor))
 
-        elif strategy == "side_chain_amide":
-            # Find residues with carboxyl and amine side chains
-            carboxyl_residues = [r for r in topology.residues if r.name in ["ASP", "GLU"]]
-            amine_residues = [r for r in topology.residues if r.name in ["LYS", "ORN"]]
-            if not carboxyl_residues or not amine_residues:
-                losses["side_chain_amide"] = None  # Not applicable
-                continue
-
-            # Compute side-chain amide losses for all combinations
-            total_loss = 0
+    if "ester" in strategies:
+        # Compute ester loss
+        hydroxyl_residues = [r for r in topology.residues if r.name in ["SER", "THR"]]
+        carboxyl_residues = [r for r in topology.residues if r.name in ["ASP", "GLU"]]
+        for hydroxyl in hydroxyl_residues:
             for carboxyl in carboxyl_residues:
-                for amine in amine_residues:
-                    c_carboxyl = get_atom_position(carboxyl, "CG")
-                    carboxyl_anchor = get_atom_position(carboxyl, "CB")
-                    n_side_chain = get_atom_position(amine, "NZ")
-                    side_chain_anchor = get_atom_position(amine, "CE")
-                    total_loss += side_chain_amide_loss(
-                        n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_anchor
-                    )
-            losses["side_chain_amide"] = total_loss
+                oxygen_hydroxyl = get_atom_position(hydroxyl, "OG")
+                hydroxyl_anchor = get_atom_position(hydroxyl, "CB")
+                carbon_carboxyl = get_atom_position(carboxyl, "CG")
+                carboxyl_anchor = get_atom_position(carboxyl, "CB")
+                losses.append(ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_anchor))
 
-        elif strategy == "thioether":
-            # Add thioether logic here
-            pass
+    if "hydrazone" in strategies:
+        # Compute hydrazone loss
+        hydrazine_residues = [r for r in topology.residues if r.name in ["ARG", "LYS"]]  # Example residues
+        carbonyl_residues = [r for r in topology.residues if r.name in ["ASP", "GLU"]]
+        for hydrazine in hydrazine_residues:
+            for carbonyl in carbonyl_residues:
+                nitrogen_hydrazine = get_atom_position(hydrazine, "NE")
+                hydrazine_anchor = get_atom_position(hydrazine, "CD")
+                carbon_carboxyl = get_atom_position(carbonyl, "CG")
+                carbonyl_anchor = get_atom_position(carbonyl, "CB")
+                losses.append(hydrazone_loss(nitrogen_hydrazine, carbon_carboxyl, hydrazine_anchor, carbonyl_anchor))
 
-        elif strategy == "ester":
-            # Add ester logic here
-            pass
-
-        elif strategy == "hydrazone":
-            # Add hydrazone logic here
-            pass
-
-        else:
-            raise ValueError(f"Unknown strategy: {strategy}")
-
-    return losses
-
-def total_cyclization_loss():
-    '''
-    Calculate total loss accross all cyclizations.
-    '''
-    pass
+    # Compute total loss using soft_min
+    total_loss = soft_min(*losses, alpha=alpha)
+    return total_loss
