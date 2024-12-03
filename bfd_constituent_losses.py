@@ -1,7 +1,7 @@
 
 import torch
 
-### MAKING ALL OF THESE BATCH FRIENDLY (ABLE TO BE DONE ACROSS-BATCHES) ###
+# batch-friendly loss building blocks
 
 def sq_distance(a1, a2):
     """
@@ -23,7 +23,7 @@ def bond_angle(a1, a2, a3):
     a1, a2, a3 (torch.Tensor): Tensors of shape (batch_size, 3).
 
     Returns:
-    torch.Tensor: Bond angles of shape (batch_size).
+    torch.Tensor: Bond angles of shape (batch_size), in radians.
     """
     v1 = a1 - a2
     v2 = a3 - a2
@@ -45,7 +45,7 @@ def dihedral_angle(a1, a2, a3, a4):
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
 
     Returns:
-    torch.Tensor: Dihedral angles of shape (batch_size).
+    torch.Tensor: Dihedral angles of shape (batch_size), in radians.
     """
     v1 = a2 - a1
     v2 = a3 - a2
@@ -68,70 +68,64 @@ def dihedral_angle(a1, a2, a3, a4):
 
     return sign * torch.acos(cos_theta)
 
-### ACTUAL LOSS FUNCTIONS DOWN HERE: ###
-### NEED TO IMPLEMENT SOME STEEPNESS PARAMETER TO PLAY AROUND WITH ###
-
-def dihedral_angle(a1, a2, a3, a4): #TODO: add tolerance
+def distance_loss(a1, a2, target_distance, tolerance=0.0):
     """
-    Compute dihedral angles for batches of points.
+    Compute distance losses with optional tolerance for batches.
 
     Parameters:
-    a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
+    a1, a2 (torch.Tensor): Tensors of shape (batch_size, 3).
+    target_distance (float): Target bond distance.
+    tolerance (float): No-penalty range around the target distance.
 
     Returns:
-    torch.Tensor: Dihedral angles of shape (batch_size).
+    torch.Tensor: Losses of shape (batch_size).
     """
-    v1 = a2 - a1
-    v2 = a3 - a2
-    v3 = a4 - a3
+    dist = torch.sqrt(sq_distance(a1, a2))
+    error = torch.abs(dist - target_distance)
+    
+    # Apply tolerance: zero penalty within tolerance range
+    penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
+    return penalty
 
-    # Normal vectors to planes
-    n1 = torch.cross(v1, v2, dim=-1)
-    n2 = torch.cross(v2, v3, dim=-1)
-
-    # Normalize normal vectors
-    n1_norm = n1 / torch.norm(n1, dim=-1, keepdim=True)
-    n2_norm = n2 / torch.norm(n2, dim=-1, keepdim=True)
-
-    # Dot product for cosine of dihedral angle
-    cos_theta = torch.sum(n1_norm * n2_norm, dim=-1).clamp(-1.0, 1.0)
-
-    # Compute the sign using a helper vector
-    m1 = torch.cross(n1_norm, n2_norm, dim=-1)
-    sign = torch.sign(torch.sum(m1 * v2, dim=-1))
-
-    return sign * torch.acos(cos_theta)
-
-def bond_angle_loss(a1, a2, a3, target_angle): #TODO: add tolerance?
+def bond_angle_loss(a1, a2, a3, target_angle, tolerance=0.0):
     """
-    Compute bond angle losses for batches.
+    Compute bond angle losses with tolerance for batches.
 
     Parameters:
     a1, a2, a3 (torch.Tensor): Tensors of shape (batch_size, 3).
     target_angle (float): Target bond angle in radians.
+    tolerance (float): No-penalty range around the target angle.
 
     Returns:
     torch.Tensor: Losses of shape (batch_size).
     """
     b_angle = bond_angle(a1, a2, a3)
-    return (b_angle - target_angle) ** 2
+    error = torch.abs(b_angle - target_angle)
+    
+    # Apply tolerance
+    penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
+    return penalty
 
-
-def dihedral_angle_loss_(a1, a2, a3, a4, target_angle):
+def dihedral_angle_loss(a1, a2, a3, a4, target_angle, tolerance=0.0):
     """
-    Compute dihedral angle losses for batches.
+    Compute dihedral angle losses with tolerance for batches.
 
     Parameters:
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
     target_angle (float): Target dihedral angle in radians.
+    tolerance (float): No-penalty range around the target angle.
 
     Returns:
     torch.Tensor: Losses of shape (batch_size).
     """
     d_angle = dihedral_angle(a1, a2, a3, a4)
-    return (d_angle - target_angle) ** 2
+    error = torch.abs(d_angle - target_angle)
+    
+    # Apply tolerance
+    penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
+    return penalty
 
-def motif_absolute(*argv, target_structure): ### NEED TO IMPLEMENT
+def motif_absolute(*argv, target_structure):
     """
     Compute a rotationally invariant loss based on relative structures.
 

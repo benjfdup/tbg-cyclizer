@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import mdtraj as md
 
-from bfd_constituant_losses import sq_distance, bond_angle_loss, dihedral_angle_loss, soft_min
+from bfd_constituent_losses import sq_distance, bond_angle_loss, dihedral_angle_loss, soft_min, distance_loss
 
 ### INSERT PHYSICAL QUANTITIES HERE, AS WELL AS RELEVANT SCALE FACTORS ###
 scaling_factor = 30 # the factor of scaling in question. Will need to account for this, l8r
@@ -91,94 +91,88 @@ amino_dict = {
     "UNK": 20, # need to have a better way of handling this in the future...
 }
 
+def precompute_atom_indices(residues, atom_names, topology):
+    """
+    Precomputes atom indices for specified atom names across residues.
+    """
+    indices = {}
+    for residue in residues:
+        for atom_name in atom_names:
+            atom = next((a for a in residue.atoms if a.name == atom_name), None)
+            if atom:
+                indices[(residue.index, atom_name)] = atom.index
+    return indices
+
 ### Specific Losses:
 
 def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb, 
-                   target_distance=2.05, 
-                   target_bond_angle=np.radians(110),  # ~110 degrees typical
-                   target_dihedral_angle=np.radians(90),  # ~90 degrees typical
-                   steepness=1,  # Controls how sharply deviations are penalized
-                   distance_tolerance=0.2):  # Range of acceptable distances without penalty
+                   target_distance=2.05, # Typical bond length in Å (?)
+                   target_bond_angle=torch.radians(110), # Typical bond angles in radians (?)
+                   target_dihedral_angle=torch.radians(90), # Typical bond angles in radians (?)
+                   distance_tolerance=0.2, 
+                   angle_tolerance=0.1, 
+                   steepness=1.0): #TODO: implement steepness
     """
-    Compute the disulfide loss for two cysteine residues.
-    
+    Compute the disulfide loss for a specific pair of cysteine residues.
+
     Parameters:
-    cys1_s (torch.Tensor): Sulfur atom position of the first cysteine.
-    cys1_cb (torch.Tensor): Beta carbon position of the first cysteine.
-    cys2_s (torch.Tensor): Sulfur atom position of the second cysteine.
-    cys2_cb (torch.Tensor): Beta carbon position of the second cysteine.
-    target_distance (float): Ideal S-S bond distance in Å.
-    target_bond_angle (float): Ideal bond angle in radians.
-    target_dihedral_angle (float): Ideal dihedral angle in radians.
-    steepness (float): Controls steepness of penalties.
-    distance_tolerance (float): Acceptable deviation in distance without penalty.
+    cys1_s (torch.Tensor): Sulfur position of the first cysteine, shape (batch_size, 3).
+    cys1_cb (torch.Tensor): Beta carbon position of the first cysteine, shape (batch_size, 3).
+    cys2_s (torch.Tensor): Sulfur position of the second cysteine, shape (batch_size, 3).
+    cys2_cb (torch.Tensor): Beta carbon position of the second cysteine, shape (batch_size, 3).
 
     Returns:
-    torch.Tensor: Loss value encoding deviations from the target geometry.
+    torch.Tensor: Total loss for disulfide bond, shape (batch_size).
     """
+    # Compute individual losses
+    ### TODO: verify these with Alex & Google.
+    dist_loss = distance_loss(cys1_s, cys2_s, target_distance, distance_tolerance)  # Shape: (batch_size)
+    angle1_loss = bond_angle_loss(cys1_cb, cys1_s, cys2_s, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle2_loss = bond_angle_loss(cys1_s, cys2_s, cys2_cb, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    dihedral_loss = dihedral_angle_loss(cys1_cb, cys1_s, cys2_s, cys2_cb, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
-    # Distance Loss
-    dist = torch.sqrt(sq_distance(cys1_s, cys2_s))
-    if abs(dist - target_distance) <= distance_tolerance:
-        distance_loss = torch.tensor(0.0, device=dist.device)  # No penalty within tolerance
-    else:
-        distance_loss = steepness * (dist - target_distance) ** 2
-
-    # Bond Angle Losses (Cβ-S-S and S-S-Cβ)
-    angle1_loss = bond_angle_loss(cys1_cb, cys1_s, cys2_s, target_bond_angle)
-    angle2_loss = bond_angle_loss(cys1_s, cys2_s, cys2_cb, target_bond_angle)
-
-    # Dihedral Angle Loss (Cβ-S-S-Cβ)
-    dihedral_loss = dihedral_angle_loss(cys1_cb, cys1_s, cys2_s, cys2_cb, target_dihedral_angle)
-
-    # Combine losses
-    #total_loss = soft_min(distance_loss, angle1_loss, angle2_loss, dihedral_loss, alpha=-steepness)
-    total_loss = distance_loss + angle1_loss + angle2_loss + dihedral_loss
+    # Combine all losses
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
 
     return total_loss
 
-def amide_loss(c1, ca1, n2, h2, 
-               target_distance=1.33,  # Typical C-N bond length in Å
-               target_bond_angle=np.radians(120),  # Typical bond angles in radians
-               target_dihedral_angle=0.0,  # Planarity implies a dihedral angle near 0 or 180 degrees
-               steepness=1,  # Controls steepness of penalties
-               distance_tolerance=0.1):  # Range of acceptable distances without penalty
+def h2t_amide_loss(c1, ca1, n2, h2, 
+                   target_distance=1.33,  # Typical C-N bond length in Å
+                   target_bond_angle=torch.radians(120),  # Typical bond angles in radians
+                   target_dihedral_angle=torch.radians(0),  # Planarity implies dihedral angle ~0
+                   distance_tolerance=0.1,
+                   angle_tolerance=0.1, 
+                   steepness=1.0):  # Controls steepness of penalties
     """
-    Compute the loss for forming an amide bond between two residues.
-    
+    Compute the loss for forming an amide bond between the head and tail residues.
+
     Parameters:
-    c1 (torch.Tensor): Carbonyl carbon atom of the first residue.
-    ca1 (torch.Tensor): Alpha carbon atom of the first residue.
-    n2 (torch.Tensor): Amide nitrogen atom of the second residue.
-    h2 (torch.Tensor): Hydrogen attached to the amide nitrogen of the second residue.
+    c1 (torch.Tensor): Carbonyl carbon atom of the first residue, shape (batch_size, 3).
+    ca1 (torch.Tensor): Alpha carbon atom of the first residue, shape (batch_size, 3).
+    n2 (torch.Tensor): Amide nitrogen atom of the second residue, shape (batch_size, 3).
+    h2 (torch.Tensor): Hydrogen attached to the amide nitrogen of the second residue, shape (batch_size, 3).
     target_distance (float): Ideal C-N bond distance in Å.
     target_bond_angle (float): Ideal bond angle in radians.
     target_dihedral_angle (float): Ideal dihedral angle in radians.
-    steepness (float): Controls steepness of penalties.
     distance_tolerance (float): Acceptable deviation in distance without penalty.
+    angle_tolerance (float): Acceptable deviation in angles without penalty.
+    steepness (float): Controls steepness of penalties.
 
     Returns:
-    torch.Tensor: Loss value encoding deviations from the target geometry.
+    torch.Tensor: Total loss for H2T amide bond, shape (batch_size).
     """
+    # Compute individual losses
+    dist_loss = distance_loss(c1, n2, target_distance, distance_tolerance)  # Shape: (batch_size)
+    angle1_loss = bond_angle_loss(ca1, c1, n2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle2_loss = bond_angle_loss(c1, n2, h2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    dihedral_loss = dihedral_angle_loss(ca1, c1, n2, h2, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
-    # Distance Loss (C-N bond)
-    dist = torch.sqrt(sq_distance(c1, n2))
-    if abs(dist - target_distance) <= distance_tolerance:
-        distance_loss = torch.tensor(0.0, device=dist.device)  # No penalty within tolerance
-    else:
-        distance_loss = steepness * (dist - target_distance) ** 2
-
-    # Bond Angle Losses
-    angle1_loss = bond_angle_loss(ca1, c1, n2, target_bond_angle)  # Cα-C-N angle
-    angle2_loss = bond_angle_loss(c1, n2, h2, target_bond_angle)  # C-N-H angle
-
-    # Dihedral Angle Loss (Cα-C-N-H planarity)
-    dihedral_loss = dihedral_angle_loss(ca1, c1, n2, h2, target_dihedral_angle)
-
-    # Combine losses
-    total_loss = distance_loss + angle1_loss + angle2_loss + dihedral_loss
+    # Combine all losses
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
 
     return total_loss
+
+### TODO: BELOW HERE NEEDS SERIOUS WORK. STILL INCREDIBLY OUTDATED. BUT I HAVE TO LEAVE RN FOR LUNCH ###
 
 def side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_anchor,
                           target_distance=1.33,  # Typical amide bond distance in Å
