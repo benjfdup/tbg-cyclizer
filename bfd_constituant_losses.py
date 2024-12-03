@@ -1,113 +1,137 @@
 
 import torch
-import mdtraj as md
+
+### MAKING ALL OF THESE BATCH FRIENDLY (ABLE TO BE DONE ACROSS-BATCHES) ###
 
 def sq_distance(a1, a2):
-    a1 = torch.tensor(a1, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    a2 = torch.tensor(a2, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
+    """
+    Compute squared distances for batches of points.
 
-    # Calculate squared distance
-    return torch.sum((a1 - a2) ** 2)
+    Parameters:
+    a1, a2 (torch.Tensor): Tensors of shape (batch_size, 3) or (n_atoms, 3).
+
+    Returns:
+    torch.Tensor: Squared distances of shape (batch_size).
+    """
+    return torch.sum((a1 - a2) ** 2, dim=-1)
 
 def bond_angle(a1, a2, a3):
-    # Convert inputs to PyTorch tensors if they are not already
-    a1 = torch.tensor(a1, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    a2 = torch.tensor(a2, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    a3 = torch.tensor(a3, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    
+    """
+    Compute bond angles for batches of points.
+
+    Parameters:
+    a1, a2, a3 (torch.Tensor): Tensors of shape (batch_size, 3).
+
+    Returns:
+    torch.Tensor: Bond angles of shape (batch_size).
+    """
     v1 = a1 - a2
     v2 = a3 - a2
 
-    # Normalize vectors to get unit vectors
-    v1_norm = v1 / torch.norm(v1)
-    v2_norm = v2 / torch.norm(v2)
+    # Normalize vectors
+    v1_norm = v1 / torch.norm(v1, dim=-1, keepdim=True)
+    v2_norm = v2 / torch.norm(v2, dim=-1, keepdim=True)
 
-    # Compute the cosine of the angle using dot product
-    cos_theta = torch.dot(v1_norm, v2_norm).clamp(-1.0, 1.0)  # Clamp to avoid numerical errors out of range
+    # Compute cosine of angles
+    cos_theta = torch.sum(v1_norm * v2_norm, dim=-1).clamp(-1.0, 1.0)
 
-    # Compute the angle in radians
-    angle = torch.acos(cos_theta)
+    return torch.acos(cos_theta)
 
-    return angle
+def dihedral_angle(a1, a2, a3, a4):
+    """
+    Compute dihedral angles for batches of points.
 
-def dihedral_angle(a1, a2, a3, a4): ### GO OVER THE INNARDS OF THIS FUNCTION! ###
-    # Convert inputs to PyTorch tensors if they are not already
-    if not isinstance(a1, torch.Tensor):
-        a1 = torch.tensor(a1, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    if not isinstance(a2, torch.Tensor):
-        a2 = torch.tensor(a2, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    if not isinstance(a3, torch.Tensor):
-        a3 = torch.tensor(a3, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    if not isinstance(a4, torch.Tensor):
-        a4 = torch.tensor(a4, requires_grad=True, device="cuda" if torch.cuda.is_available() else "cpu")
-    
-    # Calculate vectors
+    Parameters:
+    a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
+
+    Returns:
+    torch.Tensor: Dihedral angles of shape (batch_size).
+    """
     v1 = a2 - a1
     v2 = a3 - a2
     v3 = a4 - a3
 
-    # Calculate normal vectors of the planes formed by (a1, a2, a3) and (a2, a3, a4)
-    n1 = torch.cross(v1, v2)
-    n2 = torch.cross(v2, v3)
+    # Normal vectors to planes
+    n1 = torch.cross(v1, v2, dim=-1)
+    n2 = torch.cross(v2, v3, dim=-1)
 
-    # Normalize the normal vectors
-    n1_norm = n1 / torch.norm(n1)
-    n2_norm = n2 / torch.norm(n2)
+    # Normalize normal vectors
+    n1_norm = n1 / torch.norm(n1, dim=-1, keepdim=True)
+    n2_norm = n2 / torch.norm(n2, dim=-1, keepdim=True)
 
-    # Calculate the angle between the planes (dihedral angle) using the dot product
-    cos_theta = torch.dot(n1_norm, n2_norm).clamp(-1.0, 1.0)  # Clamp to avoid numerical issues
+    # Dot product for cosine of dihedral angle
+    cos_theta = torch.sum(n1_norm * n2_norm, dim=-1).clamp(-1.0, 1.0)
 
-    # Calculate the sign of the dihedral angle using the direction of v2
-    m1 = torch.cross(n1, n2)
-    sign = torch.sign(torch.dot(m1, v2))
+    # Compute the sign using a helper vector
+    m1 = torch.cross(n1_norm, n2_norm, dim=-1)
+    sign = torch.sign(torch.sum(m1 * v2, dim=-1))
 
-    # Compute the angle in radians and apply the sign
-    angle = sign * torch.acos(cos_theta)
-
-    return angle
+    return sign * torch.acos(cos_theta)
 
 ### ACTUAL LOSS FUNCTIONS DOWN HERE: ###
 ### NEED TO IMPLEMENT SOME STEEPNESS PARAMETER TO PLAY AROUND WITH ###
 
-def cyclic_distance_loss(a1, a2, target_distance: float): ### I'd like to add some parameter here to either
-    # 1.) not really penalize distances with some range of what is plausible or 2.) to encode a parabolic
-    # steepness parameter which encodes the distances over which the "corrective" derivatives arent that 
-    # steep (ie: the range of errors that we don't really care about)
+def dihedral_angle(a1, a2, a3, a4): #TODO: add tolerance
+    """
+    Compute dihedral angles for batches of points.
 
-    dist = torch.sqrt(sq_distance(a1, a2))
+    Parameters:
+    a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
 
-    return (dist - target_distance) ** 2
+    Returns:
+    torch.Tensor: Dihedral angles of shape (batch_size).
+    """
+    v1 = a2 - a1
+    v2 = a3 - a2
+    v3 = a4 - a3
 
-def bond_angle_loss(a1, a2, a3, target_angle: float):
+    # Normal vectors to planes
+    n1 = torch.cross(v1, v2, dim=-1)
+    n2 = torch.cross(v2, v3, dim=-1)
+
+    # Normalize normal vectors
+    n1_norm = n1 / torch.norm(n1, dim=-1, keepdim=True)
+    n2_norm = n2 / torch.norm(n2, dim=-1, keepdim=True)
+
+    # Dot product for cosine of dihedral angle
+    cos_theta = torch.sum(n1_norm * n2_norm, dim=-1).clamp(-1.0, 1.0)
+
+    # Compute the sign using a helper vector
+    m1 = torch.cross(n1_norm, n2_norm, dim=-1)
+    sign = torch.sign(torch.sum(m1 * v2, dim=-1))
+
+    return sign * torch.acos(cos_theta)
+
+def bond_angle_loss(a1, a2, a3, target_angle): #TODO: add tolerance?
+    """
+    Compute bond angle losses for batches.
+
+    Parameters:
+    a1, a2, a3 (torch.Tensor): Tensors of shape (batch_size, 3).
+    target_angle (float): Target bond angle in radians.
+
+    Returns:
+    torch.Tensor: Losses of shape (batch_size).
+    """
     b_angle = bond_angle(a1, a2, a3)
-
     return (b_angle - target_angle) ** 2
 
-def dihedral_angle_loss(a1, a2, a3, a4, target_angle: float):
-    d_angle = dihedral_angle(a1, a2, a3, a4)
 
+def dihedral_angle_loss_(a1, a2, a3, a4, target_angle):
+    """
+    Compute dihedral angle losses for batches.
+
+    Parameters:
+    a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
+    target_angle (float): Target dihedral angle in radians.
+
+    Returns:
+    torch.Tensor: Losses of shape (batch_size).
+    """
+    d_angle = dihedral_angle(a1, a2, a3, a4)
     return (d_angle - target_angle) ** 2
 
-def soft_min(*argv, alpha = -10): # this will take losses as its input (in the argv part)
-    # Stack the input tensors for efficient operations
-
-    # all arvs must be greater than or equal to zero.
-
-    # Seems to be working properly. Only gradient descent will tell...
-
-    inputs = torch.stack(argv)
-
-    # Ensure all inputs are on the same device (move to CUDA if needed)
-    if inputs.device != torch.device('cuda'):
-        inputs = inputs.to('cuda')
-
-    exps = torch.exp(alpha * inputs)
-
-    soft_min_result = torch.sum(inputs * exps) / torch.sum(exps)
-
-    return soft_min_result
-
-def motif_absolute(*argv, target_structure): 
+def motif_absolute(*argv, target_structure): ### NEED TO IMPLEMENT
     """
     Compute a rotationally invariant loss based on relative structures.
 
@@ -120,3 +144,18 @@ def motif_absolute(*argv, target_structure):
     """
     
     pass
+
+def soft_min(inputs, alpha=-10):
+    """
+    Compute soft minimum across batches; as alpha -> -inf, becomes a hard minimum. As alpha -> 0, becomes
+    a simple average. as alpha -> +inf, becomes a hard maximum
+
+    Parameters:
+    inputs (torch.Tensor): Tensor of shape (batch_size, n_losses).
+    alpha (float): Smoothness parameter.
+
+    Returns:
+    torch.Tensor: Soft minimum for each batch of shape (batch_size).
+    """
+    exps = torch.exp(alpha * inputs)
+    return torch.sum(inputs * exps, dim=-1) / torch.sum(exps, dim=-1)
