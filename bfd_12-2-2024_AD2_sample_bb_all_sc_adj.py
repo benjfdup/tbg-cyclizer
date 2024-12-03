@@ -5,17 +5,16 @@ import mdtraj as md
 from bgflow.utils import as_numpy
 from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution
 from bgflow import BlackBoxDynamics, BruteForceEstimator
-from tbg.models2 import EGNN_dynamics_AD2_cat
+from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 from bgflow import BlackBoxDynamics, BruteForceEstimator
 
 from bfd_conditionals import scaling_factor, initialize_cyclization_loss, amino_dict, atom_types_ecoding
 
 
 scale_factor = scaling_factor
+pdb_path = "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb"
 
-topology = md.load_topology(
-        "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb" # encodes the bond topology of the atoms encoded.
-)
+topology = md.load_topology(pdb_path) # encodes the bond topology of the atoms encoded.
 
 # Count the number of residues in the topology
 num_residues = len(list(topology.residues))
@@ -80,8 +79,16 @@ h_initial = torch.cat(
 prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda()
 prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 
+# Initialize the cyclization loss function
+cyclization_loss_fn = initialize_cyclization_loss(
+    pdb_path="/path/to/your/pdb/file.pdb",
+    strategies=["disulfide", "amide", "h2t"],  # Add relevant strategies
+    alpha=-10  # Adjust alpha as needed
+)
+
 brute_force_estimator = BruteForceEstimator()
-net_dynamics = EGNN_dynamics_AD2_cat(
+net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
+    pdb_file=pdb_path,
     n_particles=n_particles,
     device="cuda",
     n_dimension=dim // n_particles,
