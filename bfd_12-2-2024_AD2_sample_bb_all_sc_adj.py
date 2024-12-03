@@ -153,8 +153,8 @@ PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/{filename}"
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 400
-n_sample_batches = 500
+n_samples = 200 #400
+n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
 dlogp_np = np.empty(shape=(0))
@@ -162,11 +162,12 @@ print(f"Start sampling with {filename}")
 
 for i in tqdm.tqdm(range(n_sample_batches)):
     with torch.no_grad():
-        samples, latent, dlogp = bg.sample(n_samples, with_latent=True, with_dlogp=True)
+        #samples, latent, dlogp = bg.sample(n_samples, with_latent=True, with_dlogp=True) # with_dlogp=False for now
+        samples, latent = bg.sample(n_samples, with_latent=True, with_dlogp=False) # with_dlogp=False for now
         latent_np = np.append(latent_np, latent.detach().cpu().numpy())
         samples_np = np.append(samples_np, samples.detach().cpu().numpy())
 
-        dlogp_np = np.append(dlogp_np, as_numpy(dlogp))
+        #dlogp_np = np.append(dlogp_np, as_numpy(dlogp))
 
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
@@ -174,5 +175,5 @@ for i in tqdm.tqdm(range(n_sample_batches)):
         f"result_data/Dec-3-2024/{filename}",
         latent_np=latent_np,
         samples_np=samples_np,
-        dlogp_np=dlogp_np,
+        #dlogp_np=dlogp_np,
     )
