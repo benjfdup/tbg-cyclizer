@@ -8,7 +8,7 @@ from bgflow import BlackBoxDynamics, BruteForceEstimator
 from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 from bgflow import BlackBoxDynamics, BruteForceEstimator
 
-from bfd_conditionals import scaling_factor, initialize_cyclization_loss, amino_dict, atom_types_ecoding
+from bfd_conditionals import scaling_factor, amino_dict, atom_types_ecoding#, initialize_cyclization_loss
 
 
 scale_factor = scaling_factor
@@ -80,11 +80,11 @@ prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda(
 prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 
 # Initialize the cyclization loss function
-cyclization_loss_fn = initialize_cyclization_loss(
-    pdb_path="/path/to/your/pdb/file.pdb",
-    strategies=["disulfide", "amide", "h2t"],  # Add relevant strategies
-    alpha=-10  # Adjust alpha as needed
-)
+#cyclization_loss_fn = initialize_cyclization_loss(
+#    pdb_path="/path/to/your/pdb/file.pdb",
+#    strategies=["disulfide", "amide", "h2t"],  # Add relevant strategies
+#    alpha=-10  # Adjust alpha as needed
+#)
 
 brute_force_estimator = BruteForceEstimator()
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
@@ -111,7 +111,6 @@ bb_dynamics = BlackBoxDynamics(
 flow = DiffEqFlow(dynamics=bb_dynamics)
 
 bg = BoltzmannGenerator(prior, flow, prior).cuda()
-
 
 class BruteForceEstimatorFast(torch.nn.Module):
     """
@@ -148,10 +147,9 @@ flow._use_checkpoints = False
 flow._kwargs = {}
 
 
-filename = "Flow-Matching-AD2-amber-weighted-encoding"
+filename = "Nov-28-2024-Flow-Matching-L1-bb_all_sc_adjacent.pth"
 
-
-PATH_last = f"models/{filename}"
+PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/{filename}"
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
@@ -173,7 +171,7 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
     np.savez(
-        f"result_data/{filename}",
+        f"result_data/Dec-3-2024/{filename}",
         latent_np=latent_np,
         samples_np=samples_np,
         dlogp_np=dlogp_np,
