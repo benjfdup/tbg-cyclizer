@@ -172,94 +172,186 @@ def h2t_amide_loss(c1, ca1, n2, h2,
 
     return total_loss
 
-### TODO: BELOW HERE NEEDS SERIOUS WORK. STILL INCREDIBLY OUTDATED. BUT I HAVE TO LEAVE RN FOR LUNCH ###
-
 def side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_anchor,
                           target_distance=1.33,  # Typical amide bond distance in Å
-                          target_bond_angle=np.radians(120),  # Typical amide bond angle
-                          target_dihedral_angle=np.radians(0),  # Planarity of amide bond
-                          steepness=1,
-                          distance_tolerance=0.1):
+                          target_bond_angle=torch.radians(120),  # Typical amide bond angle
+                          target_dihedral_angle=torch.radians(0),  # Planarity of amide bond
+                          distance_tolerance=0.1,  # No-penalty range for distances
+                          angle_tolerance=0.1,  # No-penalty range for angles
+                          steepness=1.0):  # Factor controlling penalty steepness
     """
-    Computes the loss for forming a side-chain amide bond between a side-chain nitrogen 
-    (e.g., lysine or ornithine) and a carboxyl group (e.g., aspartic acid or glutamic acid).
-    
+    Computes the loss for forming side-chain amide bonds in a parallelized way over batches.
+
+    This loss is applicable to residues capable of forming amide bonds between a side-chain 
+    nitrogen (e.g., lysine or ornithine) and a carboxyl group (e.g., aspartic acid or glutamic acid). 
+    The formation of these bonds involves both distance and angular constraints, which are critical 
+    for maintaining bond geometry and molecular planarity.
+
     Parameters:
-    n_side_chain (torch.Tensor): Nitrogen atom of the side chain.
-    c_carboxyl (torch.Tensor): Carbon atom of the carboxyl group.
-    side_chain_anchor (torch.Tensor): Anchor atom connected to the side-chain nitrogen.
-    carboxyl_anchor (torch.Tensor): Anchor atom connected to the carboxyl carbon.
-    target_distance (float): Ideal bond distance between nitrogen and carbon in Å.
-    target_bond_angle (float): Ideal bond angle around the amide bond in radians.
-    target_dihedral_angle (float): Ideal dihedral angle for planarity in radians.
-    steepness (float): Factor controlling the penalty steepness for deviations.
-    distance_tolerance (float): Range of acceptable distances without penalty.
+    ----------
+    n_side_chain (torch.Tensor): 
+        Positions of the side-chain nitrogen atoms, shape (batch_size, 3).
+        Typically corresponds to nitrogen atoms from lysine (NZ) or ornithine.
+        
+    c_carboxyl (torch.Tensor): 
+        Positions of the carboxyl group carbon atoms, shape (batch_size, 3).
+        Typically corresponds to carbon atoms from aspartic acid (CG) or glutamic acid (CD).
+
+    side_chain_anchor (torch.Tensor): 
+        Positions of the anchor atoms connected to the side-chain nitrogen, shape (batch_size, 3).
+        For lysine or ornithine, this would be the CE atom.
+
+    carboxyl_anchor (torch.Tensor): 
+        Positions of the anchor atoms connected to the carboxyl group carbon, shape (batch_size, 3).
+        For aspartic acid or glutamic acid, this would be the CB atom.
+    
+    Optional Parameters:
+    ----------
+    target_distance (float): 
+        Ideal bond distance between the side-chain nitrogen and the carboxyl carbon in Ångstroms (default: 1.33).
+
+    target_bond_angle (float): 
+        Ideal bond angle around the amide bond in radians (default: 120° or π/3 radians).
+
+    target_dihedral_angle (float): 
+        Ideal dihedral angle for planarity of the amide bond in radians (default: 0 radians).
+
+    distance_tolerance (float): 
+        The acceptable deviation range for bond distances, below which no penalty is applied.
+
+    angle_tolerance (float): 
+        The acceptable deviation range for bond angles, below which no penalty is applied.
+
+    steepness (float): 
+        Controls the steepness of the penalties for deviations from the ideal geometry (not implemented yet)
 
     Returns:
-    torch.Tensor: Combined loss for the distance, bond angles, and dihedral angle.
+    -------
+    torch.Tensor:
+        Total loss for side-chain amide bonds across all batches, shape (batch_size).
+
+    Applicability:
+    --------------
+    This loss is used when modeling or enforcing side-chain amide bond formation in molecules, 
+    such as:
+      - Covalent bonding during peptide cyclization or cross-linking.
+      - Amide formation in protein engineering or drug design.
+    Suitable residue pairs include:
+      - Lysine (NZ) or ornithine forming bonds with the carboxyl groups of aspartic acid or glutamic acid.
+    It is particularly relevant for studying side-chain-specific interactions or designing 
+    engineered peptide structures.
+
+    Notes:
+    ------
+    This function is batch-friendly and supports parallel computation across all input batches 
+    to ensure efficiency in large datasets or simulations.
     """
 
-    # Distance Loss
-    dist = torch.sqrt(sq_distance(n_side_chain, c_carboxyl))
-    if abs(dist - target_distance) <= distance_tolerance:
-        distance_loss = torch.tensor(0.0, device=dist.device)
-    else:
-        distance_loss = steepness * (dist - target_distance) ** 2
+    # Distance Loss (N-C bond)
+    dist_loss = distance_loss(n_side_chain, c_carboxyl, target_distance, distance_tolerance)  # Shape: (batch_size)
 
     # Bond Angle Losses
-    angle1_loss = bond_angle_loss(side_chain_anchor, n_side_chain, c_carboxyl, target_bond_angle)
-    angle2_loss = bond_angle_loss(n_side_chain, c_carboxyl, carboxyl_anchor, target_bond_angle)
+    angle1_loss = bond_angle_loss(side_chain_anchor, n_side_chain, c_carboxyl, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle2_loss = bond_angle_loss(n_side_chain, c_carboxyl, carboxyl_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
 
     # Dihedral Angle Loss (Planarity)
-    dihedral_loss = dihedral_angle_loss(side_chain_anchor, n_side_chain, c_carboxyl, carboxyl_anchor, target_dihedral_angle)
+    dihedral_loss = dihedral_angle_loss(side_chain_anchor, n_side_chain, c_carboxyl, carboxyl_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
-    # Combine losses
-    total_loss = distance_loss + angle1_loss + angle2_loss + dihedral_loss
+    # Combine all losses
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+
     return total_loss
 
 def thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor,
                    target_distance=1.8,  # Typical S-C bond distance in Å
-                   target_bond_angle=np.radians(109),  # Bond angle for sp3 hybridized atoms
-                   target_dihedral_angle=np.radians(90),  # Typical dihedral angle
-                   steepness=1,
-                   distance_tolerance=0.2):
+                   target_bond_angle=torch.radians(109),  # Bond angle for sp3 hybridized atoms
+                   target_dihedral_angle=torch.radians(90),  # Typical dihedral angle
+                   distance_tolerance=0.2,  # No-penalty range for distances
+                   angle_tolerance=0.1,  # No-penalty range for angles
+                   steepness=1.0):  # Factor controlling penalty steepness
     """
-    Computes the loss for forming a thioether bond between a sulfur atom (e.g., cysteine or methionine)
-    and a carbon atom (e.g., from another residue's side chain).
-    
+    Computes the loss for forming thioether bonds in a parallelized way over batches.
+
+    This loss is applicable to residues capable of forming thioether bonds, such as cysteine (S) 
+    and methionine (SD) interacting with carbon atoms from another residue's side chain. 
+    It evaluates the geometric constraints essential for proper thioether bond formation.
+
     Parameters:
-    sulfur_atom (torch.Tensor): Sulfur atom position.
-    carbon_atom (torch.Tensor): Carbon atom position.
-    sulfur_anchor (torch.Tensor): Anchor atom connected to the sulfur.
-    carbon_anchor (torch.Tensor): Anchor atom connected to the carbon.
-    target_distance (float): Ideal bond distance between sulfur and carbon in Å.
-    target_bond_angle (float): Ideal bond angle around the thioether bond in radians.
-    target_dihedral_angle (float): Ideal dihedral angle in radians.
-    steepness (float): Factor controlling the penalty steepness for deviations.
-    distance_tolerance (float): Range of acceptable distances without penalty.
+    ----------
+    sulfur_atom (torch.Tensor): 
+        Positions of sulfur atoms, shape (batch_size, 3).
+        Typically corresponds to sulfur atoms from cysteine (SG) or methionine (SD).
+    
+    carbon_atom (torch.Tensor): 
+        Positions of carbon atoms, shape (batch_size, 3).
+        Typically corresponds to carbon atoms from another residue's side chain (e.g., CG).
+
+    sulfur_anchor (torch.Tensor): 
+        Positions of anchor atoms connected to the sulfur, shape (batch_size, 3).
+        For cysteine, this would be CB; for methionine, this would be CE.
+
+    carbon_anchor (torch.Tensor): 
+        Positions of anchor atoms connected to the carbon, shape (batch_size, 3).
+        Typically CB or CG depending on the residue.
+
+    Optional Parameters:
+    ----------
+    target_distance (float): 
+        Ideal bond distance between sulfur and carbon in Ångstroms (default: 1.8).
+
+    target_bond_angle (float): 
+        Ideal bond angle around the thioether bond in radians (default: 109° or π/3 radians).
+
+    target_dihedral_angle (float): 
+        Ideal dihedral angle in radians (default: 90° or π/2 radians).
+
+    distance_tolerance (float): 
+        Acceptable deviation range for bond distances, below which no penalty is applied.
+
+    angle_tolerance (float): 
+        Acceptable deviation range for bond angles, below which no penalty is applied.
+
+    steepness (float): 
+        Controls the steepness of penalties for deviations from the ideal geometry.
 
     Returns:
-    torch.Tensor: Combined loss for the distance, bond angles, and dihedral angle.
+    -------
+    torch.Tensor:
+        Total loss for thioether bonds across all batches, shape (batch_size).
+
+    Applicability:
+    --------------
+    This loss is used when modeling or enforcing thioether bond formation in molecules, 
+    such as:
+      - Cross-linking involving cysteine (e.g., in lipidation or glycosylation).
+      - Structural stability of proteins involving sulfur-carbon interactions.
+    Suitable residue pairs include:
+      - Cysteine (SG) or methionine (SD) forming bonds with carbon atoms in other residues.
+    It is particularly relevant for studying sulfur-specific interactions or designing 
+    engineered peptide structures.
+
+    Notes:
+    ------
+    This function is batch-friendly and supports parallel computation across all input batches 
+    to ensure efficiency in large datasets or simulations.
     """
 
-    # Distance Loss
-    dist = torch.sqrt(sq_distance(sulfur_atom, carbon_atom))
-    if abs(dist - target_distance) <= distance_tolerance:
-        distance_loss = torch.tensor(0.0, device=dist.device)
-    else:
-        distance_loss = steepness * (dist - target_distance) ** 2
+    # Distance Loss (S-C bond)
+    dist_loss = distance_loss(sulfur_atom, carbon_atom, target_distance, distance_tolerance)  # Shape: (batch_size)
 
     # Bond Angle Losses
-    angle1_loss = bond_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, target_bond_angle)
-    angle2_loss = bond_angle_loss(sulfur_atom, carbon_atom, carbon_anchor, target_bond_angle)
+    angle1_loss = bond_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle2_loss = bond_angle_loss(sulfur_atom, carbon_atom, carbon_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
 
     # Dihedral Angle Loss (Planarity)
-    dihedral_loss = dihedral_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, carbon_anchor, target_dihedral_angle)
+    dihedral_loss = dihedral_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, carbon_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
-    # Combine losses
-    total_loss = distance_loss + angle1_loss + angle2_loss + dihedral_loss + steepness
+    # Combine all losses
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
 
     return total_loss
+
+### TODO: BELOW HERE NEEDS SERIOUS WORK. STILL INCREDIBLY OUTDATED. BUT I HAVE TO LEAVE RN FOR LUNCH ###
 
 def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_anchor,
                target_distance=1.4,  # Typical O-C bond distance in Å
