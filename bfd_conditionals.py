@@ -3,10 +3,12 @@ import torch
 import numpy as np
 import mdtraj as md
 
-from bfd_constituent_losses import sq_distance, bond_angle_loss, dihedral_angle_loss, soft_min, distance_loss
+from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, soft_min, distance_loss
 from bfd_constants import *
 
-def precompute_atom_indices(residues, atom_names, topology):
+# TODO: need to add devices to the default tensor values (which are used when no other value is specified)
+
+def precompute_atom_indices(residues, atom_names):
     """
     Precomputes atom indices for specified atom names across residues.
     """
@@ -22,8 +24,8 @@ def precompute_atom_indices(residues, atom_names, topology):
 
 def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb, 
                    target_distance=2.05, # Typical bond length in Å (?)
-                   target_bond_angle=torch.deg2rad(110), # Typical bond angles in radians (?)
-                   target_dihedral_angle=torch.deg2rad(90), # Typical bond angles in radians (?)
+                   target_bond_angle=torch.deg2rad(torch.tensor(110.0)), # Typical bond angles in radians (?)
+                   target_dihedral_angle=torch.deg2rad(torch.tensor(90.0)), # Typical bond angles in radians (?)
                    distance_tolerance=0.2, 
                    angle_tolerance=0.1, 
                    steepness=1.0): #TODO: implement steepness
@@ -53,8 +55,8 @@ def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb,
 
 def h2t_amide_loss(c1, ca1, n2, h2, 
                    target_distance=1.33,  # Typical C-N bond length in Å
-                   target_bond_angle=torch.deg2rad(120),  # Typical bond angles in radians
-                   target_dihedral_angle=torch.deg2rad(0),  # Planarity implies dihedral angle ~0
+                   target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Typical bond angles in radians
+                   target_dihedral_angle=torch.deg2rad(torch.tensor(0.0)),  # Planarity implies dihedral angle ~0
                    distance_tolerance=0.1,
                    angle_tolerance=0.1, 
                    steepness=1.0):  # Controls steepness of penalties
@@ -89,8 +91,8 @@ def h2t_amide_loss(c1, ca1, n2, h2,
 
 def side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_anchor,
                           target_distance=1.33,  # Typical amide bond distance in Å
-                          target_bond_angle=torch.deg2rad(120),  # Typical amide bond angle
-                          target_dihedral_angle=torch.deg2rad(0),  # Planarity of amide bond
+                          target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Typical amide bond angle
+                          target_dihedral_angle=torch.deg2rad(torch.tensor(0.0)),  # Planarity of amide bond
                           distance_tolerance=0.1,  # No-penalty range for distances
                           angle_tolerance=0.1,  # No-penalty range for angles
                           steepness=1.0):  # Factor controlling penalty steepness
@@ -179,8 +181,8 @@ def side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_
 
 def thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor,
                    target_distance=1.8,  # Typical S-C bond distance in Å
-                   target_bond_angle=torch.deg2rad(109),  # Bond angle for sp3 hybridized atoms
-                   target_dihedral_angle=torch.deg2rad(90),  # Typical dihedral angle
+                   target_bond_angle=torch.deg2rad(torch.tensor(109.0)),  # Bond angle for sp3 hybridized atoms
+                   target_dihedral_angle=torch.deg2rad(torch.tensor(90.0)),  # Typical dihedral angle
                    distance_tolerance=0.2,  # No-penalty range for distances
                    angle_tolerance=0.1,  # No-penalty range for angles
                    steepness=1.0):  # Factor controlling penalty steepness
@@ -268,8 +270,8 @@ def thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor,
 
 def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_anchor,
                target_distance=1.4,  # Typical O-C bond distance in Å
-               target_bond_angle=torch.deg2rad(120),  # Ester bond angles
-               target_dihedral_angle=torch.deg2rad(90),  # Ester bond dihedral angle (check...)
+               target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Ester bond angles
+               target_dihedral_angle=torch.deg2rad(torch.tensor(90)),  # Ester bond dihedral angle (check...)
                distance_tolerance=0.1,  # No-penalty range for distances
                angle_tolerance=0.1,  # No-penalty range for angles
                steepness=1.0):  # Factor controlling penalty steepness
@@ -358,8 +360,8 @@ def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_ancho
 
 def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbonyl_anchor,
                    target_distance=1.45,  # Typical N=C bond distance in Å
-                   target_bond_angle=torch.deg2rad(120),  # Typical hydrazone bond angles
-                   target_dihedral_angle=torch.deg2rad(180),  # Planarity of hydrazone bond
+                   target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Typical hydrazone bond angles
+                   target_dihedral_angle=torch.deg2rad(torch.tensor(180.0)),  # Planarity of hydrazone bond
                    distance_tolerance=0.1,  # No-penalty range for distances
                    angle_tolerance=0.1,  # No-penalty range for angles
                    steepness=1.0):  # Factor controlling penalty steepness
@@ -415,7 +417,7 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
       - Chemical crosslinking reactions in bioconjugation.
       - Protein engineering and small molecule design.
     """
-    
+
     # Distance Loss (N=C bond)
     dist_loss = distance_loss(nitrogen_hydrazine, carbon_carbonyl, target_distance, distance_tolerance)  # Shape: (batch_size)
 
@@ -431,151 +433,129 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
 
     return total_loss
 
-### NOW GENERATE THE TOTAL LOSS OF CYCLIZATION FROM A PDB FILE
+### REVIEW AND FIX WHERE NEEDED...
 
-def initialize_cyclization_loss(pdb_path, strategies = ['disulfide', 'amide', 
-                                                        'side_chain_amide', 'thioether', 
-                                                        'ester', 'hydrazone', 'h2t',], 
-                                steepnesses = None, alpha=-10):
-    ### ADD STEEPNESSESS FUNCTIONALITY... if steepnesses is not None:
-
+def initialize_cyclization_loss(pdb_path, 
+                                strategies=None,  
+                                alpha=-10,
+                                steepnesses=None,):
     """
     Initialize the cyclization loss function for a peptide, returning a closure
     for efficient repeated evaluations with new positions.
 
     Parameters:
-    pdb_path (str): Path to the PDB file containing the peptide structure.
-    strategies (list of str): Cyclization strategies to compute losses for.
-                              Options include "disulfide", "amide", "side_chain_amide",
-                              "thioether", "ester", "hydrazone," "h2t".
-    steepnesses (list of float): A list of len(strategies) the steepnesses applied to each 
-    alpha (float): Exponent for the soft_min function. Higher magnitude makes it closer to the true minimum.
+    ----------
+    pdb_path (str): 
+        Path to the PDB file containing the peptide structure.
+
+    strategies (list of str, optional): 
+        Cyclization strategies to compute losses for.
+        Options include "disulfide", "amide", "side_chain_amide",
+        "thioether", "ester", "hydrazone", "h2t". 
+        Default includes all strategies.
+
+    steepnesses (dict of float, optional): 
+        Dictionary mapping strategies to their steepness values. If not provided, 
+        default steepness values will be used for each strategy.
+
+    alpha (float): 
+        Exponent for the soft_min function. Higher magnitude makes it closer to the true minimum.
 
     Returns:
-    function: A closure that computes the total loss given positions.
+    -------
+    function: 
+        A closure that computes the total loss given positions.
     """
+    if strategies is None:
+        strategies = ['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
 
     # Load PDB file and topology
     traj = md.load(pdb_path)
     topology = traj.topology
     residue_list = list(topology.residues)
-
-    # Precompute atom indices
-    def precompute_atom_indices(residues, atom_names): # need to review the innards of this, to insure it doesnt silently fail
-        indices = {}
-        for residue in residues:
-            for atom_name in atom_names:
-                atom = next((a for a in residue.atoms if a.name == atom_name), None)
-                if atom:
-                    indices[(residue.index, atom_name)] = atom.index
-        return indices
-
-    bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", "CB"]
+    
+    bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD"]
     all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
-
-    # Precompute relevant residue and atom pairs with their respective loss functions
-    loss_functions = []
 
     def get_atom_indices(residue, atom_names):
         return [all_atom_indices[(residue.index, atom_name)] for atom_name in atom_names]
 
+    # Define sub-loss functions based on selected strategies
+    loss_functions = []
+
+    # Helper to convert atom positions into tensors
+    def extract_positions(indices, positions):
+        return torch.stack([positions[idx] for idx in indices], dim=0)
+
     if "disulfide" in strategies:
         cysteines = [r for r in residue_list if r.name == "CYS"]
-        for i in range(len(cysteines)):
-            for j in range(i + 1, len(cysteines)):
-                indices = (
-                    get_atom_indices(cysteines[i], ["SG", "CB"]), # go over this indexing strategy...
-                    get_atom_indices(cysteines[j], ["SG", "CB"]),
-                )
-                loss_functions.append(lambda pos, i=indices: disulfide_loss(
-                    pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                ))
+        if len(cysteines) > 1:
+            sulfur_positions = []
+            beta_positions = []
+            for cys in cysteines:
+                sulfur_indices = get_atom_indices(cys, ["SG"])
+                beta_indices = get_atom_indices(cys, ["CB"])
+                sulfur_positions.append(sulfur_indices[0])
+                beta_positions.append(beta_indices[0])
+            sulfur_positions = torch.tensor(sulfur_positions)
+            beta_positions = torch.tensor(beta_positions)
+
+            loss_functions.append(lambda pos: disulfide_loss(
+                pos[sulfur_positions], pos[beta_positions]
+            ))
 
     if "amide" in strategies:
-        min_residue_distance = 3  # Change this to your desired minimum residue separation
-        for i in range(len(residue_list)):
-            for j in range(len(residue_list)):
-                if abs(j - i) >= min_residue_distance:  # Ensure minimum separation in both directions
-                    indices = (
-                        get_atom_indices(residue_list[i], ["C", "CA"]),
-                        get_atom_indices(residue_list[j], ["N", "H"]),
-                    )
-                    loss_functions.append(lambda pos, i=indices: amide_loss(
-                        pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                    ))
-
-
-    if "h2t" in strategies:
-        if len(residue_list) > 1:
-            indices = (
-                get_atom_indices(residue_list[-1], ["C", "CA"]),
-                get_atom_indices(residue_list[0], ["N", "H"]),
-            )
-            loss_functions.append(lambda pos, i=indices: amide_loss(
-                pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
+        min_residue_distance = 3
+        amide_pairs = [
+            (residue_list[i], residue_list[j]) for i in range(len(residue_list))
+            for j in range(i + min_residue_distance, len(residue_list))
+        ]
+        if amide_pairs:
+            carbon_positions = []
+            nitrogen_positions = []
+            for pair in amide_pairs:
+                carbon_positions.append(get_atom_indices(pair[0], ["C", "CA"]))
+                nitrogen_positions.append(get_atom_indices(pair[1], ["N", "H"]))
+            loss_functions.append(lambda pos: side_chain_amide_loss(
+                extract_positions(carbon_positions, pos),
+                extract_positions(nitrogen_positions, pos)
             ))
 
     if "side_chain_amide" in strategies:
         carboxyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
         amine_residues = [r for r in residue_list if r.name in ["LYS", "ORN"]]
-        for carboxyl in carboxyl_residues:
-            for amine in amine_residues:
-                indices = (
-                    get_atom_indices(carboxyl, ["CG", "CB"]),
-                    get_atom_indices(amine, ["NZ", "CE"]),
-                )
-                loss_functions.append(lambda pos, i=indices: side_chain_amide_loss(
-                    pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                ))
-
-    if "thioether" in strategies:
-        sulfur_residues = [r for r in residue_list if r.name in ["CYS", "MET"]]
-        carbon_residues = [r for r in residue_list if r.name not in ["CYS", "MET"]]
-        for sulfur in sulfur_residues:
-            for carbon in carbon_residues:
-                indices = (
-                    get_atom_indices(sulfur, ["SG" if sulfur.name == "CYS" else "SD", "CB"]),
-                    get_atom_indices(carbon, ["CG", "CB"]),
-                )
-                loss_functions.append(lambda pos, i=indices: thioether_loss(
-                    pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                ))
-
-    if "ester" in strategies:
-        hydroxyl_residues = [r for r in residue_list if r.name in ["SER", "THR"]]
-        carboxyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
-        for hydroxyl in hydroxyl_residues:
+        if carboxyl_residues and amine_residues:
+            carboxyl_positions = []
+            amine_positions = []
             for carboxyl in carboxyl_residues:
-                indices = (
-                    get_atom_indices(hydroxyl, ["OG", "CB"]),
-                    get_atom_indices(carboxyl, ["CG", "CB"]),
-                )
-                loss_functions.append(lambda pos, i=indices: ester_loss(
-                    pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                ))
+                carboxyl_positions.append(get_atom_indices(carboxyl, ["CG", "CB"]))
+            for amine in amine_residues:
+                amine_positions.append(get_atom_indices(amine, ["NZ", "CE"]))
+            loss_functions.append(lambda pos: side_chain_amide_loss(
+                extract_positions(amine_positions, pos),
+                extract_positions(carboxyl_positions, pos)
+            ))
 
-    if "hydrazone" in strategies:
-        hydrazine_residues = [r for r in residue_list if r.name in ["ARG", "LYS"]]
-        carbonyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
-        for hydrazine in hydrazine_residues:
-            for carbonyl in carbonyl_residues:
-                indices = (
-                    get_atom_indices(hydrazine, ["NE", "CD"]),
-                    get_atom_indices(carbonyl, ["CG", "CB"]),
-                )
-                loss_functions.append(lambda pos, i=indices: hydrazone_loss(
-                    pos[i[0][0]], pos[i[0][1]], pos[i[1][0]], pos[i[1][1]]
-                ))
+    # Add more strategies similarly...
+    # (e.g., thioether, ester, hydrazone, h2t)
 
-    # Closure for loss calculation
-    def cyclization_loss(positions): ### NEED TO MAKE THIS MORE TORCH FRIENDLY... 
-        ### SO THAT WE DONT HAVE THAT NASTY FOR LOOP (WHICH WILL BE SLOW)
-        '''
-        Final cyclic loss to be used at runtime. 
-        Accepts atom positions as inputs on which to do gradient descent.
-        '''
+    # Closure for loss computation
+    def cyclization_loss(positions): # this will be very fast, regardless, compared to the many
+        # position updates that have to occur during the flow matching EGNN passings.
 
-        losses = [loss(positions) for loss in loss_functions]
-        return soft_min(*losses, alpha=alpha)
+        """
+        Compute the cyclization loss for the given atom positions.
+
+        Parameters:
+        ----------
+        positions (torch.Tensor): Tensor of shape (N_atoms, 3) representing the atomic positions.
+
+        Returns:
+        -------
+        torch.Tensor: Total cyclization loss as a scalar.
+        """
+        batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=0)
+
+        return soft_min(batched_losses, alpha=alpha).sum()
 
     return cyclization_loss
