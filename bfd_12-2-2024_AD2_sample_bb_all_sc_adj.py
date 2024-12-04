@@ -153,7 +153,7 @@ PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/{filename}"
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 200 #400
+n_samples = 45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
