@@ -78,7 +78,7 @@ def h2t_amide_loss(c1, ca1, n2, h2,
     Returns:
     torch.Tensor: Total loss for H2T amide bond, shape (batch_size).
     """
-    # Compute individual losses
+    # Compute individual losses 
     dist_loss = distance_loss(c1, n2, target_distance, distance_tolerance)  # Shape: (batch_size)
     angle1_loss = bond_angle_loss(ca1, c1, n2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
     angle2_loss = bond_angle_loss(c1, n2, h2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
