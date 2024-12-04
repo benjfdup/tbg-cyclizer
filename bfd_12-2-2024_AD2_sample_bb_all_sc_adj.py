@@ -8,7 +8,7 @@ from bgflow import BlackBoxDynamics, BruteForceEstimator
 from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 from bgflow import BlackBoxDynamics, BruteForceEstimator
 
-from bfd_conditionals import scaling_factor, amino_dict, atom_types_ecoding#, initialize_cyclization_loss
+from bfd_constants import *
 
 
 scale_factor = scaling_factor
@@ -172,7 +172,7 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
     np.savez(
-        f"result_data/Dec-3-2024/{filename}",
+        f"/home/bfd21/rds/hpc-work/tbg/result_data/Dec-3-2024/bb_all_sc_adj_batch-{i}.npz",
         latent_np=latent_np,
         samples_np=samples_np,
         #dlogp_np=dlogp_np,
