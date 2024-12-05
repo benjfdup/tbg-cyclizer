@@ -151,7 +151,7 @@ logger.add(f"{log_dir}/training_log.log", rotation="500 MB", retention="10 days"
 
 # Initialize wandb
 wandb.init(
-    project="L1-Nov-28-2024-bb_all_sc_adj",  # Name of your wandb project
+    project="L1-Dec-5-2024-NO-SCALE-bb_all_sc_adj",  # Name of your wandb project
     config={
         "n_particles": n_particles,
         "dim": dim,
@@ -210,6 +210,9 @@ for epoch in tqdm(range(n_epochs), desc="Epoch Progress", unit="epoch"):
 
         # Log to loguru
         logger.info(f"Epoch: {epoch}, Loss: {avg_loss:.6f}, Time: {elapsed_time:.2f}s")
+
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(PATH_last), exist_ok=True)
 
         torch.save(
             {
