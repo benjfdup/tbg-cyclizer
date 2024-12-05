@@ -10,6 +10,7 @@ from bgflow import (
     DiffEqFlow, # look into how this works
     MeanFreeNormalDistribution, # look into how this works, too.
 )
+
 from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 #from tbg.models2 import EGNN_dynamics_transferable_MD, EGNN_dynamics_AD2_cat
 from bgflow import BlackBoxDynamics, BruteForceEstimator
@@ -21,7 +22,9 @@ import wandb
 
 from bfd_conditionals import amino_dict, atom_types_ecoding
 import os
-os.makedirs("/home/bfd21/rds/hpc-work/tbg/jobs/job-Dec-5/logs", exist_ok=True)
+
+log_dir = "/home/bfd21/rds/hpc-work/tbg/jobs/job-Dec-5"
+os.makedirs(f'{log_dir}/logs', exist_ok=True)
 
 ### NOT DESIGNED TO TRAIN THE MODEL ON DIALANINE, BUT RATHER L1
 # atom types for backbone, directory and setup information
@@ -136,7 +139,7 @@ optim = torch.optim.Adam(flow.parameters(), lr=5e-4)
 n_epochs = 100
 
 #PATH_last = "models/Flow-Matching-AD2-amber-weighted-encoding" # TBG original
-PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth"
+PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth"
 
 # let's just see if this works :)
 
@@ -144,7 +147,7 @@ PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/Dec-5-2024-NO-S
 sigma = 0.01 # std of datapoints for flowmatching
 
 # Initialize loguru logger
-logger.add("/home/bfd21/rds/hpc-work/tbg/jobs/job-Nov-28/training_log.log", rotation="500 MB", retention="10 days", level="INFO")
+logger.add(f"{log_dir}/training_log.log", rotation="500 MB", retention="10 days", level="INFO")
 
 # Initialize wandb
 wandb.init(
@@ -159,9 +162,9 @@ wandb.init(
         "learning_rate": 5e-4,
         "sigma": sigma,
         "data_path": data_path,
-        "model_dynamics": "EGNN_dynamics_AD2_cat_bb_all_sc_adjacent"
+        "model_dynamics": "EGNN_dynamics_AD2_cat_bb_all_sc_adj"
     },
-    dir="/home/bfd21/rds/hpc-work/tbg/jobs/job-Nov-28/logs"
+    dir=f"{log_dir}/logs"
 )
 
 start_time = time.time()
@@ -189,8 +192,7 @@ for epoch in tqdm(range(n_epochs), desc="Epoch Progress", unit="epoch"):
         noise = prior.sample(batchsize)
         x = mu_t + sigma_t * noise
         ut = x1 - x0
-        vt = flow._dynamics._dynamics._dynamics_function(t, x) # this is where the model runs out of memory.
-        # why is this one line so demanding spatially..? Batch size too big? ### COME BACK HERE...
+        vt = flow._dynamics._dynamics._dynamics_function(t, x) # be careful with too large batch sizes
         loss = torch.mean((vt - ut) ** 2)
         loss.backward()
         optim.step()
