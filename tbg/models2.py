@@ -4,6 +4,7 @@ import torch.nn as nn
 from tbg.gcl import E_GCL_vel, E_GCL, GCL
 from tbg.utils import remove_mean, remove_mean_with_mask, generate_bb_all_sc_adjacent_from_pdb
 
+### MANY OF THESE SEEM TO BE THE DYNAMICS FUNCTIONS USED IN THE BB_DYNAMICS ###
 
 class EGNN_dynamics(nn.Module):
     def __init__(self, n_particles, n_dimension, hidden_nf=64, device='cpu',
@@ -468,6 +469,19 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
         else:
             # Fallback to the default behavior if no custom adjacency is provided
             return super()._create_edges()
+
+class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
+    '''
+    This model should not be used in training...
+    '''
+
+    def __init__(self, *args, w = 0, l_cyclic=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.w = w
+
+        if l_cyclic is None:
+            self.l_cyclic = lambda x : 0 # TODO: review. will this loss do nothing..?
+    ### ADD FORWARD METHOD.
 
 class EGNN_dynamics_QM9(nn.Module):
     def __init__(self, in_node_nf, context_node_nf,

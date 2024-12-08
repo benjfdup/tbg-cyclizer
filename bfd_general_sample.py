@@ -162,7 +162,7 @@ brute_force_estimator_fast = BruteForceEstimatorFast()
 bb_dynamics._divergence_estimator = brute_force_estimator_fast
 bg.flow._integrator_atol = 1e-4
 bg.flow._integrator_rtol = 1e-4
-flow._use_checkpoints = False
+flow._use_checkpoints = False  ### INTERESTING TO PLAY AROUND WITH THIS, NO?
 flow._kwargs = {}
 
 checkpoint = torch.load(PATH_last)
