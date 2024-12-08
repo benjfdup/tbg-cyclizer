@@ -2,6 +2,8 @@ import tqdm
 import torch
 import numpy as np
 import mdtraj as md
+import os
+
 from bgflow.utils import as_numpy
 from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution
 from bgflow import BlackBoxDynamics, BruteForceEstimator
@@ -10,10 +12,27 @@ from bgflow import BlackBoxDynamics, BruteForceEstimator
 
 from bfd_constants import *
 
-
-scale_factor = scaling_factor
+### THINGS TO CHANGE vvv
 pdb_path = "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb"
 
+filename = "Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth" # model to be used for inference
+PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/{filename}" # path to model dir
+
+save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Dec-8-2024/"
+
+if save_dir[-1] != "/": # DON'T CHANGE
+    save_dir += "/" # DON'T CHANGE
+
+save_data_name = "300E_bb_all_sc_adj" # DO NOT INCLUDE .npz extension here...
+### THINGS TO CHANGE ^^^
+
+# Extract the directory part from the template
+save_dir_path = os.path.dirname(save_dir)
+
+# Ensure the directory exists
+os.makedirs(save_dir_path, exist_ok=True)
+
+scale_factor = scaling_factor
 topology = md.load_topology(pdb_path) # encodes the bond topology of the atoms encoded.
 
 # Count the number of residues in the topology
@@ -87,7 +106,7 @@ prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 #)
 
 brute_force_estimator = BruteForceEstimator()
-net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
+net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
     pdb_file=pdb_path,
     n_particles=n_particles,
     device="cuda",
@@ -146,17 +165,7 @@ bg.flow._integrator_rtol = 1e-4
 flow._use_checkpoints = False
 flow._kwargs = {}
 
-
-filename = "L1-bb_all_sc_adjacent_NEW-12-5-24.pth" # model to be used for inference
-
-PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/{filename}"
 checkpoint = torch.load(PATH_last)
-
-if "epoch" in checkpoint:
-    print(f"The model was trained for {checkpoint['epoch'] + 1} epochs.")
-else:
-    print("Epoch information is not available in the checkpoint.")
-
 flow.load_state_dict(checkpoint["model_state_dict"])
 
 n_samples = 45 #400
@@ -178,7 +187,7 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
     np.savez(
-        f"/home/bfd21/rds/hpc-work/tbg/result_data/Dec-5-2024/NEW_200E_bb_all_sc_adj_batch-{i}.npz",
+        f"{save_dir}{save_data_name}_batch-{i}.npz",
         latent_np=latent_np,
         samples_np=samples_np,
         #dlogp_np=dlogp_np,

@@ -107,7 +107,7 @@ batch_iter = IndexBatchIterator(len(data_smaller), n_batch)
 
 optim = torch.optim.Adam(flow.parameters(), lr=5e-4)
 n_epochs = 100
-PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/Nov-28-2024-Flow-Matching-L1-bb_all_sc_adjacent.pth"
+PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/L1-bb_all_sc_adjacent_NEW-12-5-24.pth"
 
 # Load checkpoint if exists
 if os.path.exists(PATH_last):
@@ -176,7 +176,7 @@ for epoch in tqdm(range(start_epoch, total_epochs), desc="Epoch Progress", unit=
 
         epoch_loss += loss.item()
 
-    if epoch % 100 == 0 or epoch == total_epochs - 1:
+    if epoch % 20 == 0 or epoch == total_epochs - 1:
         avg_loss = epoch_loss / len(batch_iter)
         elapsed_time = time.time() - start_time
 
@@ -189,7 +189,7 @@ for epoch in tqdm(range(start_epoch, total_epochs), desc="Epoch Progress", unit=
                 "optimizer_state_dict": optim.state_dict(),
                 "epoch": epoch,
             },
-            "/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/L1-bb_all_sc_adjacent_NEW-12-5-24.pth",
+            PATH_last,
         )
 
 print("Training completed successfully.")

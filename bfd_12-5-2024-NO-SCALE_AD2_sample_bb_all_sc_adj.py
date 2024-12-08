@@ -147,16 +147,10 @@ flow._use_checkpoints = False
 flow._kwargs = {}
 
 
-filename = "L1-bb_all_sc_adjacent_NEW-12-5-24.pth" # model to be used for inference
+filename = "Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth" # model to be used for inference
 
-PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Nov-28-2024/{filename}"
+PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/{filename}"
 checkpoint = torch.load(PATH_last)
-
-if "epoch" in checkpoint:
-    print(f"The model was trained for {checkpoint['epoch'] + 1} epochs.")
-else:
-    print("Epoch information is not available in the checkpoint.")
-
 flow.load_state_dict(checkpoint["model_state_dict"])
 
 n_samples = 45 #400
@@ -178,7 +172,7 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
     np.savez(
-        f"/home/bfd21/rds/hpc-work/tbg/result_data/Dec-5-2024/NEW_200E_bb_all_sc_adj_batch-{i}.npz",
+        f"/home/bfd21/rds/hpc-work/tbg/result_data/Dec-5-2024/NO-SCALE_bb_all_sc_adj_batch-{i}.npz",
         latent_np=latent_np,
         samples_np=samples_np,
         #dlogp_np=dlogp_np,
