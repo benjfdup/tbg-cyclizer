@@ -18,12 +18,12 @@ pdb_path = "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb"
 filename = "Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth" # model to be used for inference
 PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/{filename}" # path to model dir
 
-save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Dec-8-2024/"
+save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Dec-9-2024/"
 
 if save_dir[-1] != "/": # DON'T CHANGE
     save_dir += "/" # DON'T CHANGE
 
-save_data_name = "300E_bb_all_sc_adj" # DO NOT INCLUDE .npz extension here...
+save_data_name = "bb_all_sc_adj_plus_l_cyclic" # DO NOT INCLUDE .npz extension here...
 ### THINGS TO CHANGE ^^^
 
 # Extract the directory part from the template
@@ -124,6 +124,8 @@ brute_force_estimator = BruteForceEstimator()
 #)
 
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
+    ### This might not work in this context, but lets just try it
+    with_dlogp=False,
     pdb_file=pdb_path,
     w_t=None,
     l_cyclic=None,
@@ -187,7 +189,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 45 #400
+n_samples = 10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))

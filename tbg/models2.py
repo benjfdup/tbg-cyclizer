@@ -470,37 +470,40 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # created
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
     '''
-    This model should not be used in training. 
-    
-    l_cyclic must be a function which takes a tensor, representing 
-    all of the atom positions, at that point, and which outputs a single number, representing the loss associated
-    with cyclicality, at that stage. Ideally, these should be batch friendly, but these computations won't occupy
-    the bulk of time
+    This model should not be used in training.
 
-    w_t must be a function of a float between 0 & 1 (time), which outputs another float between 0 & 1 (loss coeff).
+    A class representing the NetDynamics of all backbone atoms fully connected to one another, but with sidechain atoms only 
+    connected fully to other atoms within their, or adjacent, amino acids.
+
+    Parameters:
+    ----------
+    l_cyclic (function: torch.Tensor -> torch.Tensor): 
+        a function which takes a tensor of shape (n_batch, n_atoms, n_dimensions), representing the atom positions, 
+        at that point in time, accross batched, and which outputs a single number [torch.Tensor, shape (n_batch), )], 
+        representing the loss associated with cyclicality. Must be a positive number for all batches. All computation 
+        for this should be done on the gpu.
+
+    w_t (function: torch.Tensor -> torch.Tensor):
+        a function of a torch.Tensor between 0 & 1 [torch.Tensor, shape (1, )] representing time, which outputs another 
+        float between 0 & 1, representing the loss coefficient [torch.Tensor, shape (n_batch, )]. Ideally this is batch 
+        friendly and does all computation on the gpu.
     '''
 
-    def __init__(self, *args, w_t = None, l_cyclic=None, **kwargs):
+    def __init__(self, *args, w_t = None, l_cyclic=None, with_dlogp=True, **kwargs):
         super().__init__(*args, **kwargs)
-        self.w_t = w_t
         
         if w_t is None: ### move this function onto the gpu, if you can.
-            self.w_t = lambda t: torch.tensor(0.0, device=self.device)
+            self.w_t = lambda t: torch.tensor(0.0 * t, device=self.device)
         else:
-            # Wrap w_t to ensure it operates on GPU tensors
-            def gpu_w_t(t): # this seems like it might be slow
-                if not isinstance(t, torch.Tensor):
-                    t = torch.tensor(t, device=self.device)
-                return w_t(t.to(self.device))
-            self.w_t = gpu_w_t
+            self.w_t = w_t # perhaps enforce some guarentees about this being on the gpu?
         
         if l_cyclic is None: ### move this function onto the gpu, if you can.
-            lambda x: torch.tensor(0.0, device=self.device) # TODO: review. will this loss do nothing?
+            # TODO: review. will this loss do nothing?
+            self.l_cyclic = lambda x: (0.01 * x ** 2).sum(dim=(1, 2)) # make this something which does nothing
         else:
-            # Wrap l_cyclic to ensure it operates on GPU tensors
-            def gpu_l_cyclic(x): # this seems like it might be slow
-                return l_cyclic(x.to(self.device))
-            self.l_cyclic = gpu_l_cyclic
+            self.l_cyclic = l_cyclic # perhaps enforce some guarentees about this being on the gpu?
+        
+        self.with_dlogp = with_dlogp
             
     def forward(self, t, xs): # modified by Ben... TODO: FINISH/FIX THIS...
         """
@@ -513,7 +516,6 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         Returns:
             torch.Tensor: Updated velocities with cyclic loss included, of the same shape as `xs`.
         """
-        #print(xs.shape)
 
         n_batch = xs.shape[0]
         edges = self._cast_edges2batch(self.edges, n_batch, self._n_particles)
@@ -537,8 +539,10 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         # Compute edge attributes for the dynamics
         edge_attr = torch.sum((x[edges[0]] - x[edges[1]]) ** 2, dim=1, keepdim=True)
 
-        with torch.no_grad():
-            # Perform operations without tracking gradients
+        context = torch.enable_grad() if self.with_dlogp else torch.no_grad()
+
+        # Perform primary operations
+        with context:
             if self.mode == 'egnn_dynamics':
                 _, x_final = self.egnn(h, x, edges, edge_attr=edge_attr)
                 vel = x_final - x  # Velocity based on position updates
@@ -550,7 +554,9 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
 
         # Now re-enable gradient tracking for cyclic loss
         xs.requires_grad_(True) # will this work? we shall see.
-        cyclic_loss = self.l_cyclic(xs)
+        #print(f'-----====== DOES X REQUIRE GRAD? ======----- : {xs.requires_grad}')
+        cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension))
+        #print(cyclic_loss)
         grad_cyclic = torch.autograd.grad( ### see if this works...
             cyclic_loss, xs, grad_outputs=torch.ones_like(cyclic_loss), create_graph=True
             )[0]
