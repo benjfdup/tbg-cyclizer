@@ -7,7 +7,7 @@ import os
 from bgflow.utils import as_numpy
 from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution
 from bgflow import BlackBoxDynamics, BruteForceEstimator
-from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
+from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic
 from bgflow import BlackBoxDynamics, BruteForceEstimator
 
 from bfd_constants import *
@@ -106,8 +106,27 @@ prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 #)
 
 brute_force_estimator = BruteForceEstimator()
-net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
+#net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
+#    pdb_file=pdb_path,
+#    n_particles=n_particles,
+#    device="cuda",
+#    n_dimension=dim // n_particles,
+#    h_initial=h_initial,
+#    hidden_nf=64,
+#    act_fn=torch.nn.SiLU(),
+#    n_layers=5,
+#    recurrent=True,
+#    tanh=True,
+#    attention=True,
+#    condition_time=True,
+#    mode="egnn_dynamics",
+#    agg="sum",
+#)
+
+net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
     pdb_file=pdb_path,
+    w_t=None,
+    l_cyclic=None,
     n_particles=n_particles,
     device="cuda",
     n_dimension=dim // n_particles,

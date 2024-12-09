@@ -483,13 +483,25 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
     def __init__(self, *args, w_t = None, l_cyclic=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.w_t = w_t
-
-        if l_cyclic is None: ### move this function onto the gpu, if you can.
-            self.l_cyclic = lambda x : 0 # TODO: review. will this loss do nothing?
         
         if w_t is None: ### move this function onto the gpu, if you can.
-            self.w_t = lambda t : 0
+            self.w_t = lambda t: torch.tensor(0.0, device=self.device)
+        else:
+            # Wrap w_t to ensure it operates on GPU tensors
+            def gpu_w_t(t): # this seems like it might be slow
+                if not isinstance(t, torch.Tensor):
+                    t = torch.tensor(t, device=self.device)
+                return w_t(t.to(self.device))
+            self.w_t = gpu_w_t
         
+        if l_cyclic is None: ### move this function onto the gpu, if you can.
+            lambda x: torch.tensor(0.0, device=self.device) # TODO: review. will this loss do nothing?
+        else:
+            # Wrap l_cyclic to ensure it operates on GPU tensors
+            def gpu_l_cyclic(x): # this seems like it might be slow
+                return l_cyclic(x.to(self.device))
+            self.l_cyclic = gpu_l_cyclic
+            
     def forward(self, t, xs): # modified by Ben... TODO: FINISH/FIX THIS...
         """
         Forward pass with cyclic loss incorporated.
