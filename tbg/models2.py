@@ -440,9 +440,7 @@ class EGNN_dynamics_AD2_cat(nn.Module):
             self._edges_dict[n_batch] = [rows_total, cols_total]
         return self._edges_dict[n_batch]
 
-#modified by Ben.
-
-class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
+class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # created by Ben
     def __init__(self, *args, pdb_file=None, **kwargs):
         self._custom_adj_matrix = None
 
@@ -472,16 +470,92 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
     '''
-    This model should not be used in training...
+    This model should not be used in training. 
+    
+    l_cyclic must be a function which takes a tensor, representing 
+    all of the atom positions, at that point, and which outputs a single number, representing the loss associated
+    with cyclicality, at that stage. Ideally, these should be batch friendly, but these computations won't occupy
+    the bulk of time
+
+    w_t must be a function of a float between 0 & 1 (time), which outputs another float between 0 & 1 (loss coeff).
     '''
 
-    def __init__(self, *args, w = 0, l_cyclic=None, **kwargs):
+    def __init__(self, *args, w_t = None, l_cyclic=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.w = w
+        self.w_t = w_t
 
-        if l_cyclic is None:
-            self.l_cyclic = lambda x : 0 # TODO: review. will this loss do nothing..?
-    ### ADD FORWARD METHOD.
+        if l_cyclic is None: ### move this function onto the gpu, if you can.
+            self.l_cyclic = lambda x : 0 # TODO: review. will this loss do nothing?
+        
+        if w_t is None: ### move this function onto the gpu, if you can.
+            self.w_t = lambda t : 0
+        
+    def forward(self, t, xs): # modified by Ben... TODO: FINISH/FIX THIS...
+        """
+        Forward pass with cyclic loss incorporated.
+
+        Args:
+            t (float or torch.Tensor): Time, between 0 and 1.
+            xs (torch.Tensor): Atomic positions of shape (batch_size, n_particles * n_dimensions).
+
+        Returns:
+            torch.Tensor: Updated velocities with cyclic loss included, of the same shape as `xs`.
+        """
+        #print(xs.shape)
+
+        n_batch = xs.shape[0]
+        edges = self._cast_edges2batch(self.edges, n_batch, self._n_particles)
+        edges = [edges[0], edges[1]]
+
+        # Reshape xs to match expected input shape
+        x = xs.reshape(n_batch * self._n_particles, self._n_dimension).clone()
+        h = self.h_initial.to(self.device).reshape(1, -1)
+        h = h.repeat(n_batch, 1)
+        h = h.reshape(n_batch * self._n_particles, -1)
+
+        # Time tensor handling
+        t_tensor = torch.tensor(t).to(xs)
+        if t_tensor.shape != (n_batch, 1):
+            t_tensor = t_tensor.repeat(n_batch, 1)
+        t_tensor = t_tensor.repeat(1, self._n_particles).reshape(n_batch * self._n_particles, 1)
+
+        if self.condition_time:
+            h = torch.cat([h, t_tensor], dim=-1)
+
+        # Compute edge attributes for the dynamics
+        edge_attr = torch.sum((x[edges[0]] - x[edges[1]]) ** 2, dim=1, keepdim=True)
+
+        with torch.no_grad():
+            # Perform operations without tracking gradients
+            if self.mode == 'egnn_dynamics':
+                _, x_final = self.egnn(h, x, edges, edge_attr=edge_attr)
+                vel = x_final - x  # Velocity based on position updates
+            else:
+                raise NotImplementedError("Unsupported dynamics mode.")
+        
+        # Reshape velocity to batch format and remove the mean
+        vel = vel.view(n_batch, self._n_particles, self._n_dimension)
+
+        # Now re-enable gradient tracking for cyclic loss
+        xs.requires_grad_(True) # will this work? we shall see.
+        cyclic_loss = self.l_cyclic(xs)
+        grad_cyclic = torch.autograd.grad( ### see if this works...
+            cyclic_loss, xs, grad_outputs=torch.ones_like(cyclic_loss), create_graph=True
+            )[0]
+
+        # Scale cyclic loss gradient by w_t(t)
+        loss_coefficient = self.w_t(t)
+        grad_cyclic_scaled = loss_coefficient * grad_cyclic.view(n_batch, self._n_particles, self._n_dimension)
+
+        # Add the scaled gradient to the velocity
+        vel = (1 - loss_coefficient) * vel + grad_cyclic_scaled
+
+        # Reshape velocity back to the original format
+        vel = vel.view(n_batch, self._n_particles * self._n_dimension)
+        vel = remove_mean(vel)
+
+        self.counter += 1
+        return vel
 
 class EGNN_dynamics_QM9(nn.Module):
     def __init__(self, in_node_nf, context_node_nf,
