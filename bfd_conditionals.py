@@ -438,21 +438,18 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
 class cyclization_loss_handler(): #TODO: implement steepnesses
     def __init__(self, pdb_path,
                  alpha = -10, 
+                 device = None,
                  strategies=['disulfide', 'amide', 'side_chain_amide', 
-                             'thioether', 'ester', 'hydrazone', 'h2t']):
+                             'thioether', 'ester', 'hydrazone', 'h2t'],):
         self._pdb_path = pdb_path
         self._alpha = alpha
+        self._device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._strategies = strategies
 
         self.loss_functions = []
-        self.strategy_names = []
-        self.alpha = alpha
-        self.residue_pairs = []
         self.cyclization_loss = None
 
-
         self._initialize_loss()
-
 
     def _initialize_loss(self):
         """
@@ -471,7 +468,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
         # Define sub-loss functions based on selected strategies
         loss_functions = []
-        residue_pairs = [] ### TODO: FIX THIS!!!
+        
+        strategies_indices_pair_list = []
 
         # Helper to convert atom positions into tensors
         def extract_positions(indices, positions):
@@ -480,18 +478,27 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         if "disulfide" in self._strategies: 
             cysteines = [r for r in residue_list if r.name == "CYS"]
             if len(cysteines) > 1:
-                sulfur_positions = []
-                beta_positions = []
-                for cys in cysteines:
-                    sulfur_indices = get_atom_indices(cys, ["SG"])
-                    beta_indices = get_atom_indices(cys, ["CB"])
-                    sulfur_positions.append(sulfur_indices[0])
-                    beta_positions.append(beta_indices[0])
-                sulfur_positions = torch.tensor(sulfur_positions, device=torch.cuda()) #TODO: fix this for case where only cpu is available
-                beta_positions = torch.tensor(beta_positions, device=torch.cuda()) #TODO: fix this for case where only cpu is available
+                for i, cys_1 in enumerate(cysteines):
+                    for cys_2 in cysteines[i + 1:]:  # Avoid duplicate pairs
+                        sulfur_indices_1 = get_atom_indices(cys_1, ["SG"])
+                        sulfur_indices_2 = get_atom_indices(cys_2, ["SG"])
+                        beta_indices_1 = get_atom_indices(cys_1, ["CB"])
+                        beta_indices_2 = get_atom_indices(cys_2, ["CB"])
 
-                loss_functions.append(lambda pos: disulfide_loss(pos[sulfur_positions], pos[beta_positions]))
-                residue_pairs.append(("disulfide", cysteines))
+                        # Convert indices to tensors
+                        current_sulfur_positions = torch.tensor([sulfur_indices_1[0], sulfur_indices_2[0]], device=self._device)
+                        current_beta_positions = torch.tensor([beta_indices_1[0], beta_indices_2[0]], device=self._device)
+
+                        # Add the loss function with captured arguments
+                        loss_functions.append(
+                            lambda pos, s_pos=current_sulfur_positions, b_pos=current_beta_positions: disulfide_loss(pos[:, s_pos], pos[:, b_pos])
+                        )
+
+                        # Append strategy and amino acid indices to the list
+                        strategies_indices_pair_list.append((
+                            "disulfide", 
+                            (cys_1.index, cys_2.index)
+                        ))
 
         if "amide" in self._strategies:
             min_residue_distance = 3
@@ -589,7 +596,6 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         # (e.g., thioether, ester, hydrazone, h2t)
 
         # Store strategies, loss functions, and residue pairs
-        self.strategy_names = self._strategies
         self.loss_functions = loss_functions
         self.residue_pairs = residue_pairs
 
@@ -647,8 +653,11 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
         batched_losses = torch.stack([loss(positions) for loss in self.loss_functions], dim=0)
         min_idx = torch.argmin(batched_losses).item()
-        strategy_name = self.strategy_names[min_idx]
-        residues = self.residue_pairs[min_idx]
-        loss_value = batched_losses[min_idx].item()
+        # from the index of the minimum loss, we should be able to 1.) reconstruct what strategy was used for the loss & 2.) between what
+        # indices of amino acids it was formed...
+
+        strategy_name = self._strategies[min_idx] #TODO: Broken... fix this!
+        residues = self.residue_pairs[min_idx] #TODO: Broken... fix this!
+        loss_value = batched_losses[min_idx].item() #TODO: Broken... fix this!
 
         return strategy_name, residues, loss_value
