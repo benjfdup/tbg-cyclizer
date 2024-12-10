@@ -434,6 +434,7 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
     return total_loss
 
 ### REVIEW AND FIX WHERE NEEDED...
+### the above losses are not included in the below class to reduce that class's clutter.
 
 class cyclization_loss_handler(): #TODO: implement steepnesses
     def __init__(self, pdb_path,
@@ -447,9 +448,9 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         self._strategies = strategies
 
         # should I make these private?
-        self.loss_functions = []
-        self.strategies_indices_pair_list = []
-        self.cyclization_loss = None
+        self._loss_functions = []
+        self._strategies_indices_pair_list = []
+        self._cyclization_loss = None
 
         self._initialize_loss()
 
@@ -518,8 +519,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             "disulfide", 
                             (cys_1.index, cys_2.index)
                         ))
-
-### TODO: YOU LEFT OFF HERE, BEN --- Need to fix rest of these losses
+                        
         if "side_chain_amide" in self._strategies:
             carboxyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
             amine_residues = [r for r in residue_list if r.name in ["LYS", "ORN"]]
@@ -551,7 +551,6 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             (carboxyl.index, amine.index)
                         ))
 
-
         if "thioether" in self._strategies:
             thiol_residues = [r for r in residue_list if r.name in ["CYS", "MET"]]
             alkyl_residues = [r for r in residue_list if r.name in ["LYS", "ORN", "ALA"]]  # Example residues with alkyl groups
@@ -577,60 +576,110 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             )
                         )
 
-                # Append strategy and amino acid indices to the list
-                strategies_indices_pair_list.append((
-                    "thioether",
-                    (thiol.index, alkyl.index)
-                ))
+                        # Append strategy and amino acid indices to the list
+                        strategies_indices_pair_list.append((
+                            "thioether",
+                            (thiol.index, alkyl.index)
+                        ))
 
         if "ester" in self._strategies:
             serine_residues = [r for r in residue_list if r.name == "SER"]
             glutamate_residues = [r for r in residue_list if r.name == "GLU"]
             if serine_residues and glutamate_residues:
-                hydroxyl_positions = []
-                carboxyl_positions = []
                 for ser in serine_residues:
-                    hydroxyl_positions.append(get_atom_indices(ser, ["OG"]))
-                for glu in glutamate_residues:
-                    carboxyl_positions.append(get_atom_indices(glu, ["CD"]))
-                loss_functions.append(lambda pos: ester_loss(
-                    extract_positions(hydroxyl_positions, pos),
-                    extract_positions(carboxyl_positions, pos)
-                ))
-                residue_pairs.append(("ester", (serine_residues, glutamate_residues)))
+                    for glu in glutamate_residues:
+                        # Extract individual atom indices
+                        hydroxyl_index = get_atom_indices(ser, ["OG"])[0]  # Hydroxyl oxygen
+                        carboxyl_index = get_atom_indices(glu, ["CD"])[0]  # Carboxyl carbon
+                        ser_anchor = get_atom_indices(ser, ["CB"])[0]  # Serine anchor
+                        glu_anchor = get_atom_indices(glu, ["CG"])[0]  # Glutamate anchor
+
+                        # Add the loss function with captured arguments
+                        loss_functions.append(
+                            lambda pos, 
+                            oxygen_hydroxyl=hydroxyl_index,  # Hydroxyl oxygen (serine)
+                            carbon_carboxyl=carboxyl_index,  # Carboxyl carbon (glutamate)
+                            hydroxyl_anchor=ser_anchor,  # Serine anchor atom
+                            carboxyl_anchor=glu_anchor:  # Glutamate anchor atom
+                            ester_loss(
+                                pos[:, oxygen_hydroxyl, :], 
+                                pos[:, carbon_carboxyl, :], 
+                                pos[:, hydroxyl_anchor, :], 
+                                pos[:, carboxyl_anchor, :]
+                            )
+                        )
+
+                        # Append strategy and amino acid indices to the list
+                        strategies_indices_pair_list.append((
+                            "ester",
+                            (ser.index, glu.index)
+                        ))
 
         if "hydrazone" in self._strategies:
             lysine_residues = [r for r in residue_list if r.name == "LYS"]
-            aldehyde_residues = [r for r in residue_list if r.name == "CHO"]  # Hypothetical example
+            aldehyde_residues = [r for r in residue_list if r.name == "CHO"]  # Hypothetical example, non-canonical AA
             if lysine_residues and aldehyde_residues:
-                amine_positions = []
-                carbonyl_positions = []
                 for lys in lysine_residues:
-                    amine_positions.append(get_atom_indices(lys, ["NZ"]))
-                for cho in aldehyde_residues:
-                    carbonyl_positions.append(get_atom_indices(cho, ["C"]))
-                loss_functions.append(lambda pos: hydrazone_loss(
-                    extract_positions(amine_positions, pos),
-                    extract_positions(carbonyl_positions, pos)
-                ))
-                residue_pairs.append(("hydrazone", (lysine_residues, aldehyde_residues)))
+                    for cho in aldehyde_residues:
+                        # Extract individual atom indices
+                        nitrogen_hydrazine = get_atom_indices(lys, ["NZ"])[0]  # Amine nitrogen (lysine)
+                        carbon_carbonyl = get_atom_indices(cho, ["C"])[0]  # Carbonyl carbon (aldehyde)
+                        hydrazine_anchor = get_atom_indices(lys, ["CE"])[0]  # Lysine anchor atom
+                        carbonyl_anchor = get_atom_indices(cho, ["O"])[0]  # Aldehyde anchor atom
+
+                        # Add the loss function with captured arguments
+                        loss_functions.append(
+                            lambda pos, 
+                            n_hydrazine=nitrogen_hydrazine,  # Nitrogen hydrazine
+                            c_carbonyl=carbon_carbonyl,  # Carbonyl carbon
+                            h_anchor=hydrazine_anchor,  # Hydrazine anchor atom
+                            c_anchor=carbonyl_anchor:  # Carbonyl anchor atom
+                            hydrazone_loss(
+                                pos[:, n_hydrazine, :], 
+                                pos[:, c_carbonyl, :], 
+                                pos[:, h_anchor, :], 
+                                pos[:, c_anchor, :]
+                            )
+                        )
+
+                        # Append strategy and amino acid indices to the list
+                        strategies_indices_pair_list.append((
+                            "hydrazone",
+                            (lys.index, cho.index)
+                        ))
 
         if "h2t" in self._strategies:
-            terminal_residues = [r for r in residue_list if r.is_terminal]
+            # Identify terminal residues by checking their connectivity or sequence position
+            terminal_residues = [res for res in residue_list if res.index == 0 or res.index == len(residue_list) - 1]
             if len(terminal_residues) == 2:
-                terminal_positions = []
-                for term in terminal_residues:
-                    terminal_positions.append(get_atom_indices(term, ["CA"]))
-                loss_functions.append(lambda pos: h2t_amide_loss(
-                    extract_positions(terminal_positions, pos)
-                ))
-                residue_pairs.append(("h2t", terminal_residues))
-        # Add more strategies similarly...
-        # (e.g., thioether, ester, hydrazone, h2t)
+                # Extract individual atom indices for the N- and C-terminal residues
+                c1_index = get_atom_indices(terminal_residues[1], ["C"])[0]  # C-terminal carbon
+                ca1_index = get_atom_indices(terminal_residues[1], ["CA"])[0]  # C-terminal alpha-carbon
+                n2_index = get_atom_indices(terminal_residues[0], ["N"])[0]  # N-terminal nitrogen
+                h2_index = get_atom_indices(terminal_residues[0], ["H"])[0]  # Hydrogen attached to N-terminal nitrogen
 
-        # Store strategies, loss functions, and residue pairs
-        self.loss_functions = loss_functions
-        self.residue_pairs = residue_pairs
+                # Add the loss function with captured arguments
+                loss_functions.append(
+                    lambda pos, 
+                    c1=c1_index,  # C-terminal carbon
+                    ca1=ca1_index,  # C-terminal alpha-carbon
+                    n2=n2_index,  # N-terminal nitrogen
+                    h2=h2_index:  # Hydrogen attached to N-terminal nitrogen
+                    h2t_amide_loss(
+                        pos[:, c1, :], 
+                        pos[:, ca1, :], 
+                        pos[:, n2, :], 
+                        pos[:, h2, :]
+                    )
+                )
+
+                # Append strategy and amino acid indices to the list
+                strategies_indices_pair_list.append((
+                    "h2t",
+                    (terminal_residues[1].index, terminal_residues[0].index)
+                ))
+
+        # Add more strategies similarly...
 
         # Closure for loss computation
         def cyclization_loss(positions): # this will be very fast, regardless, compared to the many
@@ -650,14 +699,15 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
             batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=0)
 
             return soft_min(batched_losses, alpha=self.alpha).sum()
-
-        self.cyclization_loss = cyclization_loss
-        self.loss_functions = loss_functions
-        self.strategies_indices_pair_list = strategies_indices_pair_list
+        
+        # Store strategies, loss functions, and residue pairs
+        self._cyclization_loss = cyclization_loss
+        self._loss_functions = loss_functions
+        self._strategies_indices_pair_list = strategies_indices_pair_list
     
     def compute_loss(self, positions):
         """
-        Compute the total cyclization loss.
+        Compute the total cyclization loss with gradients enabled.
 
         Parameters:
         ----------
@@ -667,13 +717,13 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         -------
         torch.Tensor: Total cyclization loss as a scalar.
         """
-        if not self.cyclization_loss:
-            raise ValueError("Cyclization loss not initialized.")
-        return self.cyclization_loss(positions) 
-    
+        with torch.enable_grad():  # Explicitly enable gradients for this computation
+            return self._cyclization_loss(positions)
+
+    ### TODO: just need to make this method below batch friendly...    
     def get_smallest_loss(self, positions): # TODO: FIX THIS!!!
         """
-        Identify the smallest loss, its type, and the amino acids involved.
+        Identify the smallest cyclization loss, its type, and the amino acids involved.
 
         Parameters:
         ----------
@@ -681,18 +731,24 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
         Returns:
         -------
-        tuple: (strategy_name, residues, loss_value)
+        tuple: A tuple containing:
+            - strat (str): The strategy type (e.g., "disulfide", "amide") associated with the smallest loss.
+            - idx_pair (tuple): A tuple of residue indices between which the smallest loss occurs.
+
+        Notes:
+        -----
+        - The `positions` tensor must match the shape expected by the loss functions, which typically is (N_atoms, 3).
+        - The index of each loss function in `self._loss_functions` must correspond exactly to the strategy-residue pair
+        in `self._strategies_indices_pair_list`, as maintained during `_initialize_loss`.
+        - This function assumes that `self._loss_functions` and `self._strategies_indices_pair_list` are non-empty and 
+        properly aligned. If these are empty or misaligned, the function may raise runtime errors.
         """
-        if not self.cyclization_loss:
-            raise ValueError("Cyclization loss not initialized.")
 
-        batched_losses = torch.stack([loss(positions) for loss in self.loss_functions], dim=0)
-        min_idx = torch.argmin(batched_losses).item()
-        # from the index of the minimum loss, we should be able to 1.) reconstruct what strategy was used for the loss & 2.) between what
-        # indices of amino acids it was formed...
+        batched_losses = torch.stack([loss(positions) for loss in self._loss_functions], dim=0)
+        min_idx = torch.argmin(batched_losses).item() # this will be a list of indeces...
 
-        strategy_name = self._strategies[min_idx] #TODO: Broken... fix this!
-        residues = self.residue_pairs[min_idx] #TODO: Broken... fix this!
-        loss_value = batched_losses[min_idx].item() #TODO: Broken... fix this!
+        ### TODO: ACCOUNT FOR BATCHES!!!
+        
+        strat, idx_pair = self._strategies_indices_pair_list[min_idx]
 
-        return strategy_name, residues, loss_value
+        return strat, idx_pair
