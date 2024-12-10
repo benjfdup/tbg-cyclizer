@@ -446,7 +446,9 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         self._device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._strategies = strategies
 
+        # should I make these private?
         self.loss_functions = []
+        self.strategies_indices_pair_list = []
         self.cyclization_loss = None
 
         self._initialize_loss()
@@ -464,6 +466,17 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
 
         def get_atom_indices(residue, atom_names):
+            """
+            Retrieves the atom indices for specified atom names in a given residue.
+
+            Args:
+                residue: A residue object from the topology containing atom information.
+                atom_names (list of str): A list of atom names for which indices are required.
+
+            Returns:
+                list of int: A list of atom indices corresponding to the specified atom names
+                in the given residue.
+            """
             return [all_atom_indices[(residue.index, atom_name)] for atom_name in atom_names]
 
         # Define sub-loss functions based on selected strategies
@@ -472,7 +485,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         strategies_indices_pair_list = []
 
         # Helper to convert atom positions into tensors
-        def extract_positions(indices, positions):
+        def extract_positions(indices, positions): # needed?
             return torch.stack([positions[idx] for idx in indices], dim=0)
 
         if "disulfide" in self._strategies: 
@@ -480,18 +493,24 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
             if len(cysteines) > 1:
                 for i, cys_1 in enumerate(cysteines):
                     for cys_2 in cysteines[i + 1:]:  # Avoid duplicate pairs
-                        sulfur_indices_1 = get_atom_indices(cys_1, ["SG"])
-                        sulfur_indices_2 = get_atom_indices(cys_2, ["SG"])
-                        beta_indices_1 = get_atom_indices(cys_1, ["CB"])
-                        beta_indices_2 = get_atom_indices(cys_2, ["CB"])
-
-                        # Convert indices to tensors
-                        current_sulfur_positions = torch.tensor([sulfur_indices_1[0], sulfur_indices_2[0]], device=self._device)
-                        current_beta_positions = torch.tensor([beta_indices_1[0], beta_indices_2[0]], device=self._device)
+                        # Extract individual atom indices
+                        sulfur_index_1 = get_atom_indices(cys_1, ["SG"])[0]
+                        sulfur_index_2 = get_atom_indices(cys_2, ["SG"])[0]
+                        beta_index_1 = get_atom_indices(cys_1, ["CB"])[0]
+                        beta_index_2 = get_atom_indices(cys_2, ["CB"])[0]
 
                         # Add the loss function with captured arguments
                         loss_functions.append(
-                            lambda pos, s_pos=current_sulfur_positions, b_pos=current_beta_positions: disulfide_loss(pos[:, s_pos], pos[:, b_pos])
+                            lambda pos, 
+                            s1=sulfur_index_1, 
+                            s2=sulfur_index_2, 
+                            cb1=beta_index_1,
+                            cb2=beta_index_2: disulfide_loss(
+                                pos[:, s1, :],  # Sulfur of cysteine 1
+                                pos[:, cb1, :], # Beta-carbon of cysteine 1
+                                pos[:, s2, :],  # Sulfur of cysteine 2
+                                pos[:, cb2, :], # Beta-carbon of cysteine 2
+                            )
                         )
 
                         # Append strategy and amino acid indices to the list
@@ -500,55 +519,69 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             (cys_1.index, cys_2.index)
                         ))
 
-        if "amide" in self._strategies:
-            min_residue_distance = 3
-            amide_pairs = [
-                (residue_list[i], residue_list[j]) for i in range(len(residue_list))
-                for j in range(i + min_residue_distance, len(residue_list))
-            ]
-            if amide_pairs:
-                carbon_positions = []
-                nitrogen_positions = []
-                for pair in amide_pairs:
-                    carbon_positions.append(get_atom_indices(pair[0], ["C", "CA"]))
-                    nitrogen_positions.append(get_atom_indices(pair[1], ["N", "H"]))
-                loss_functions.append(lambda pos: side_chain_amide_loss(
-                    extract_positions(carbon_positions, pos),
-                    extract_positions(nitrogen_positions, pos)
-                ))
-                residue_pairs.append(("amide", amide_pairs))
-
+### TODO: YOU LEFT OFF HERE, BEN --- Need to fix rest of these losses
         if "side_chain_amide" in self._strategies:
             carboxyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
             amine_residues = [r for r in residue_list if r.name in ["LYS", "ORN"]]
             if carboxyl_residues and amine_residues:
-                carboxyl_positions = []
-                amine_positions = []
                 for carboxyl in carboxyl_residues:
-                    carboxyl_positions.append(get_atom_indices(carboxyl, ["CG", "CB"]))
-                for amine in amine_residues:
-                    amine_positions.append(get_atom_indices(amine, ["NZ", "CE"]))
-                loss_functions.append(lambda pos: side_chain_amide_loss(
-                    extract_positions(amine_positions, pos),
-                    extract_positions(carboxyl_positions, pos)
-                ))
-                residue_pairs.append(("side_chain_amide", (carboxyl_residues, amine_residues)))
+                    for amine in amine_residues:
+                        # Extract individual atom indices
+                        carboxyl_indices = get_atom_indices(carboxyl, ["CG", "CB"])
+                        amine_indices = get_atom_indices(amine, ["NZ", "CE"])
+
+                        # Add the loss function with captured arguments
+                        loss_functions.append(
+                            lambda pos, 
+                            n_idx=amine_indices[0],  # Side-chain amine
+                            c_idx=carboxyl_indices[0],  # Carboxyl group
+                            a_anchor=amine_indices[1],  # Amine side-chain anchor
+                            c_anchor=carboxyl_indices[1]:  # Carboxyl side-chain anchor
+                            side_chain_amide_loss(
+                                pos[:, n_idx, :], 
+                                pos[:, c_idx, :],
+                                pos[:, a_anchor, :], 
+                                pos[:, c_anchor, :]
+                            )
+                        )
+
+                        # Append strategy and amino acid indices to the list
+                        strategies_indices_pair_list.append((
+                            "side_chain_amide",
+                            (carboxyl.index, amine.index)
+                        ))
+
 
         if "thioether" in self._strategies:
-            methionine_residues = [r for r in residue_list if r.name == "MET"]
-            lysine_residues = [r for r in residue_list if r.name == "LYS"]
-            if methionine_residues and lysine_residues:
-                sulfur_positions = []
-                amine_positions = []
-                for met in methionine_residues:
-                    sulfur_positions.append(get_atom_indices(met, ["SD"]))
-                for lys in lysine_residues:
-                    amine_positions.append(get_atom_indices(lys, ["NZ"]))
-                loss_functions.append(lambda pos: thioether_loss(
-                    extract_positions(sulfur_positions, pos),
-                    extract_positions(amine_positions, pos)
+            thiol_residues = [r for r in residue_list if r.name in ["CYS", "MET"]]
+            alkyl_residues = [r for r in residue_list if r.name in ["LYS", "ORN", "ALA"]]  # Example residues with alkyl groups
+            if thiol_residues and alkyl_residues:
+                for thiol in thiol_residues:
+                    for alkyl in alkyl_residues:
+                        # Extract individual atom indices
+                        thiol_indices = get_atom_indices(thiol, ["SG", "CB"])  # Sulfur and its anchor
+                        alkyl_indices = get_atom_indices(alkyl, ["CE", "CB"])  # Alkyl group and its anchor
+
+                        # Add the loss function with captured arguments
+                        loss_functions.append(
+                            lambda pos, 
+                            s_atom=thiol_indices[0],  # Sulfur atom (thiol)
+                            c_atom=alkyl_indices[0],  # Carbon atom (alkyl group)
+                            s_anchor=thiol_indices[1],  # Sulfur anchor
+                            c_anchor=alkyl_indices[1]:  # Carbon anchor
+                            thioether_loss(
+                                pos[:, s_atom, :], 
+                                pos[:, c_atom, :],
+                                pos[:, s_anchor, :], 
+                                pos[:, c_anchor, :]
+                            )
+                        )
+
+                # Append strategy and amino acid indices to the list
+                strategies_indices_pair_list.append((
+                    "thioether",
+                    (thiol.index, alkyl.index)
                 ))
-                residue_pairs.append(("thioether", (methionine_residues, lysine_residues)))
 
         if "ester" in self._strategies:
             serine_residues = [r for r in residue_list if r.name == "SER"]
@@ -619,6 +652,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
             return soft_min(batched_losses, alpha=self.alpha).sum()
 
         self.cyclization_loss = cyclization_loss
+        self.loss_functions = loss_functions
+        self.strategies_indices_pair_list = strategies_indices_pair_list
     
     def compute_loss(self, positions):
         """
