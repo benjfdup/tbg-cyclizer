@@ -5,11 +5,10 @@ import mdtraj as md
 import os
 
 from bgflow.utils import as_numpy
-from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution
-from bgflow import BlackBoxDynamics, BruteForceEstimator
-from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic
-from bgflow import BlackBoxDynamics, BruteForceEstimator
+from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution, BlackBoxDynamics, BruteForceEstimator
+from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic, EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 
+from bfd_conditionals import cyclization_loss_handler
 from bfd_constants import *
 
 ### THINGS TO CHANGE vvv
@@ -26,13 +25,14 @@ if save_dir[-1] != "/": # DON'T CHANGE
 save_data_name = "bb_all_sc_adj_plus_l_cyclic" # DO NOT INCLUDE .npz extension here...
 ### THINGS TO CHANGE ^^^
 
+with_dlogp = False
+
 # Extract the directory part from the template
 save_dir_path = os.path.dirname(save_dir)
 
 # Ensure the directory exists
 os.makedirs(save_dir_path, exist_ok=True)
 
-scale_factor = scaling_factor
 topology = md.load_topology(pdb_path) # encodes the bond topology of the atoms encoded.
 
 # Count the number of residues in the topology
@@ -95,7 +95,7 @@ h_initial = torch.cat(
 )
 
 # now set up a prior
-prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda()
+prior = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False).cuda() ### might this be causing the problems?
 prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 
 # Initialize the cyclization loss function
@@ -123,12 +123,17 @@ brute_force_estimator = BruteForceEstimator()
 #    agg="sum",
 #)
 
+loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
+                                        strategies=['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t'],
+                                        )
+
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
     ### This might not work in this context, but lets just try it
-    with_dlogp=False,
+    with_dlogp=with_dlogp,
     pdb_file=pdb_path,
-    w_t=None,
-    l_cyclic=None,
+    w_t= lambda t : 0.01,
+    l_cyclic=loss_handler.compute_loss,
+    #l_cyclic= lambda x: (0.01 * x ** 2).sum(dim=(1, 2)),
     n_particles=n_particles,
     device="cuda",
     n_dimension=dim // n_particles,
@@ -143,6 +148,10 @@ net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO W
     mode="egnn_dynamics",
     agg="sum",
 )
+
+### TODO:
+### Size of dt (& hence number of steps) seems to be determined by the error of the system... Try to verify this & see if you can fix
+### the error below!!!
 
 bb_dynamics = BlackBoxDynamics(
     dynamics_function=net_dynamics, divergence_estimator=brute_force_estimator
@@ -168,7 +177,7 @@ class BruteForceEstimatorFast(torch.nn.Module):
 
             dxs = dynamics(t, torch.cat(x, dim=1))
 
-            assert len(dxs.shape) == 2, "`dxs` must have shape [n_btach, system_dim]"
+            assert len(dxs.shape) == 2, f"`dxs` must have shape [n_batch, system_dim]."
             divergence = 0
             for i in range(xs.size(1)):
                 divergence += torch.autograd.grad(
@@ -189,7 +198,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 10 #45 #400
+n_samples = 4 #10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
@@ -198,8 +207,10 @@ print(f"Start sampling with {filename}")
 
 for i in tqdm.tqdm(range(n_sample_batches)):
     with torch.no_grad():
-        #samples, latent, dlogp = bg.sample(n_samples, with_latent=True, with_dlogp=True) # with_dlogp=False for now
-        samples, latent = bg.sample(n_samples, with_latent=True, with_dlogp=False) # with_dlogp=False for now
+        if with_dlogp:
+            samples, latent, dlogp = bg.sample(n_samples, with_latent=True, with_dlogp=with_dlogp) # with_dlogp=False for now
+        else:
+            samples, latent = bg.sample(n_samples, with_latent=True, with_dlogp=with_dlogp) # with_dlogp=False for now
         latent_np = np.append(latent_np, latent.detach().cpu().numpy())
         samples_np = np.append(samples_np, samples.detach().cpu().numpy())
 

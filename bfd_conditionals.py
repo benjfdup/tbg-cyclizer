@@ -78,7 +78,10 @@ def h2t_amide_loss(c1, ca1, n2, h2,
     Returns:
     torch.Tensor: Total loss for H2T amide bond, shape (batch_size).
     """
-    # Compute individual losses 
+    # Compute individual losses
+    assert torch.all(torch.isfinite(c1)), f"c1 contains invalid values: {c1}"
+    assert torch.all(torch.isfinite(n2)), f"n2 contains invalid values: {n2}"
+
     dist_loss = distance_loss(c1, n2, target_distance, distance_tolerance)  # Shape: (batch_size)
     angle1_loss = bond_angle_loss(ca1, c1, n2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
     angle2_loss = bond_angle_loss(c1, n2, h2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
@@ -86,6 +89,8 @@ def h2t_amide_loss(c1, ca1, n2, h2,
 
     # Combine all losses
     total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+
+    assert torch.all(torch.isfinite(total_loss)), f"total_loss contains something non_finite! total_loss: {total_loss}"
 
     return total_loss
 
@@ -507,10 +512,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             s2=sulfur_index_2, 
                             cb1=beta_index_1,
                             cb2=beta_index_2: disulfide_loss(
-                                pos[:, s1, :],  # Sulfur of cysteine 1
-                                pos[:, cb1, :], # Beta-carbon of cysteine 1
-                                pos[:, s2, :],  # Sulfur of cysteine 2
-                                pos[:, cb2, :], # Beta-carbon of cysteine 2
+                                pos[:, s1, :].squeeze(),  # Sulfur of cysteine 1
+                                pos[:, cb1, :].squeeze(), # Beta-carbon of cysteine 1
+                                pos[:, s2, :].squeeze(),  # Sulfur of cysteine 2
+                                pos[:, cb2, :].squeeze(), # Beta-carbon of cysteine 2
                             )
                         )
 
@@ -538,10 +543,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             a_anchor=amine_indices[1],  # Amine side-chain anchor
                             c_anchor=carboxyl_indices[1]:  # Carboxyl side-chain anchor
                             side_chain_amide_loss(
-                                pos[:, n_idx, :], 
-                                pos[:, c_idx, :],
-                                pos[:, a_anchor, :], 
-                                pos[:, c_anchor, :]
+                                pos[:, n_idx, :].squeeze(), 
+                                pos[:, c_idx, :].squeeze(),
+                                pos[:, a_anchor, :].squeeze(), 
+                                pos[:, c_anchor, :].squeeze(),
                             )
                         )
 
@@ -569,10 +574,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             s_anchor=thiol_indices[1],  # Sulfur anchor
                             c_anchor=alkyl_indices[1]:  # Carbon anchor
                             thioether_loss(
-                                pos[:, s_atom, :], 
-                                pos[:, c_atom, :],
-                                pos[:, s_anchor, :], 
-                                pos[:, c_anchor, :]
+                                pos[:, s_atom, :].squeeze(), 
+                                pos[:, c_atom, :].squeeze(),
+                                pos[:, s_anchor, :].squeeze(), 
+                                pos[:, c_anchor, :].squeeze(),
                             )
                         )
 
@@ -602,10 +607,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             hydroxyl_anchor=ser_anchor,  # Serine anchor atom
                             carboxyl_anchor=glu_anchor:  # Glutamate anchor atom
                             ester_loss(
-                                pos[:, oxygen_hydroxyl, :], 
-                                pos[:, carbon_carboxyl, :], 
-                                pos[:, hydroxyl_anchor, :], 
-                                pos[:, carboxyl_anchor, :]
+                                pos[:, oxygen_hydroxyl, :].squeeze(), 
+                                pos[:, carbon_carboxyl, :].squeeze(), 
+                                pos[:, hydroxyl_anchor, :].squeeze(), 
+                                pos[:, carboxyl_anchor, :].squeeze(),
                             )
                         )
 
@@ -635,10 +640,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             h_anchor=hydrazine_anchor,  # Hydrazine anchor atom
                             c_anchor=carbonyl_anchor:  # Carbonyl anchor atom
                             hydrazone_loss(
-                                pos[:, n_hydrazine, :], 
-                                pos[:, c_carbonyl, :], 
-                                pos[:, h_anchor, :], 
-                                pos[:, c_anchor, :]
+                                pos[:, n_hydrazine, :].squeeze(), 
+                                pos[:, c_carbonyl, :].squeeze(), 
+                                pos[:, h_anchor, :].squeeze(), 
+                                pos[:, c_anchor, :].squeeze(),
                             )
                         )
 
@@ -666,10 +671,10 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                     n2=n2_index,  # N-terminal nitrogen
                     h2=h2_index:  # Hydrogen attached to N-terminal nitrogen
                     h2t_amide_loss(
-                        pos[:, c1, :], 
-                        pos[:, ca1, :], 
-                        pos[:, n2, :], 
-                        pos[:, h2, :]
+                        pos[:, c1, :].squeeze(), 
+                        pos[:, ca1, :].squeeze(), 
+                        pos[:, n2, :].squeeze(), 
+                        pos[:, h2, :].squeeze(),
                     )
                 )
 
@@ -690,15 +695,19 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
             Parameters:
             ----------
-            positions (torch.Tensor): Tensor of shape (N_atoms, 3) representing the atomic positions.
+            positions (torch.Tensor): Tensor of shape (N_batch, N_atoms, 3) representing the atomic positions.
 
             Returns:
             -------
             torch.Tensor: Total cyclization loss as a scalar.
             """
-            batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=0)
+            
+            batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=1) # check the required shape...
+            # batched losses should be of shape (n_batches, n_losses)
 
-            return soft_min(batched_losses, alpha=self.alpha).sum()
+            # soft_min expects an input of the shape (n_batches, n_losses)
+
+            return soft_min(batched_losses, alpha=self._alpha) # should be of shape (n_batch, )
         
         # Store strategies, loss functions, and residue pairs
         self._cyclization_loss = cyclization_loss
@@ -718,37 +727,22 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         torch.Tensor: Total cyclization loss as a scalar.
         """
         with torch.enable_grad():  # Explicitly enable gradients for this computation
-            return self._cyclization_loss(positions)
+            return self._cyclization_loss(positions) # should be of shape (n_batch, )
 
     ### TODO: just need to make this method below batch friendly...    
-    def get_smallest_loss(self, positions): # TODO: FIX THIS!!!
+    def get_smallest_loss(self, positions):
         """
-        Identify the smallest cyclization loss, its type, and the amino acids involved.
-
-        Parameters:
-        ----------
-        positions (torch.Tensor): Tensor of shape (N_atoms, 3) representing the atomic positions.
-
-        Returns:
-        -------
-        tuple: A tuple containing:
-            - strat (str): The strategy type (e.g., "disulfide", "amide") associated with the smallest loss.
-            - idx_pair (tuple): A tuple of residue indices between which the smallest loss occurs.
-
-        Notes:
-        -----
-        - The `positions` tensor must match the shape expected by the loss functions, which typically is (N_atoms, 3).
-        - The index of each loss function in `self._loss_functions` must correspond exactly to the strategy-residue pair
-        in `self._strategies_indices_pair_list`, as maintained during `_initialize_loss`.
-        - This function assumes that `self._loss_functions` and `self._strategies_indices_pair_list` are non-empty and 
-        properly aligned. If these are empty or misaligned, the function may raise runtime errors.
+        Identify the smallest cyclization loss, its type, and the amino acids involved for each batch.
         """
+        # Compute batched losses for each loss function
+        batched_losses = torch.stack([loss(positions) for loss in self._loss_functions], dim=1) 
+        # Shape: (n_batch, n_loss_functions)
 
-        batched_losses = torch.stack([loss(positions) for loss in self._loss_functions], dim=0)
-        min_idx = torch.argmin(batched_losses).item() # this will be a list of indeces...
+        # Find the index of the smallest loss for each batch
+        min_indices = torch.argmin(batched_losses, dim=1)  # Shape: (n_batch,)
 
-        ### TODO: ACCOUNT FOR BATCHES!!!
-        
-        strat, idx_pair = self._strategies_indices_pair_list[min_idx]
+        # Get the strategy and indices for each batch
+        results = [self._strategies_indices_pair_list[min_idx] for min_idx in min_indices] 
+        # may be a way to speed ^^ this ^^ up, but not an issue since this only needs to be called once at the end of sampling.
 
-        return strat, idx_pair
+        return results

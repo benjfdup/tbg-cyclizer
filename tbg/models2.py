@@ -442,6 +442,7 @@ class EGNN_dynamics_AD2_cat(nn.Module):
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # created by Ben
     def __init__(self, *args, pdb_file=None, **kwargs):
+        self.counter = 0 ### feel free to remove later... for bugtesting.
         self._custom_adj_matrix = None
 
         super().__init__(*args, **kwargs)
@@ -467,6 +468,9 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # created
         else:
             # Fallback to the default behavior if no custom adjacency is provided
             return super()._create_edges()
+    
+#    def forward(self, t, xs):
+#        return super().forward(t, xs)
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
     '''
@@ -504,6 +508,7 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
             self.l_cyclic = l_cyclic # perhaps enforce some guarentees about this being on the gpu?
         
         self.with_dlogp = with_dlogp
+        self._cyclic_counter = 0 # TODO: REMOVE THIS?
             
     def forward(self, t, xs): # modified by Ben... TODO: FINISH/FIX THIS...
         """
@@ -518,62 +523,34 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         """
 
         n_batch = xs.shape[0]
-        edges = self._cast_edges2batch(self.edges, n_batch, self._n_particles)
-        edges = [edges[0], edges[1]]
+        vel = super().forward(t, xs) # disable grad for this?
 
-        # Reshape xs to match expected input shape
-        x = xs.reshape(n_batch * self._n_particles, self._n_dimension).clone()
-        h = self.h_initial.to(self.device).reshape(1, -1)
-        h = h.repeat(n_batch, 1)
-        h = h.reshape(n_batch * self._n_particles, -1)
-
-        # Time tensor handling
-        t_tensor = torch.tensor(t).to(xs)
-        if t_tensor.shape != (n_batch, 1):
-            t_tensor = t_tensor.repeat(n_batch, 1)
-        t_tensor = t_tensor.repeat(1, self._n_particles).reshape(n_batch * self._n_particles, 1)
-
-        if self.condition_time:
-            h = torch.cat([h, t_tensor], dim=-1)
-
-        # Compute edge attributes for the dynamics
-        edge_attr = torch.sum((x[edges[0]] - x[edges[1]]) ** 2, dim=1, keepdim=True)
-
-        context = torch.enable_grad() if self.with_dlogp else torch.no_grad()
-
-        # Perform primary operations
-        with context:
-            if self.mode == 'egnn_dynamics':
-                _, x_final = self.egnn(h, x, edges, edge_attr=edge_attr)
-                vel = x_final - x  # Velocity based on position updates
-            else:
-                raise NotImplementedError("Unsupported dynamics mode.")
-        
-        # Reshape velocity to batch format and remove the mean
-        vel = vel.view(n_batch, self._n_particles, self._n_dimension)
+        if torch.any(torch.isnan(xs)): #huh... not working???
+            print('--------========== ISNAN CONDITION TRIGGERED ==========--------')
+            return vel
 
         # Now re-enable gradient tracking for cyclic loss
         xs.requires_grad_(True) # will this work? we shall see.
-        #print(f'-----====== DOES X REQUIRE GRAD? ======----- : {xs.requires_grad}')
-        cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension))
-        #print(cyclic_loss)
+        cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension)) ### TODO: ahh, this seems to create the error...
+
         grad_cyclic = torch.autograd.grad( ### see if this works...
             cyclic_loss, xs, grad_outputs=torch.ones_like(cyclic_loss), create_graph=True
-            )[0]
+            )[0].view(n_batch,  self._n_particles* self._n_dimension)
 
         # Scale cyclic loss gradient by w_t(t)
         loss_coefficient = self.w_t(t)
-        grad_cyclic_scaled = loss_coefficient * grad_cyclic.view(n_batch, self._n_particles, self._n_dimension)
+
+        print
 
         # Add the scaled gradient to the velocity
-        vel = (1 - loss_coefficient) * vel + grad_cyclic_scaled
+        vel = (1 - loss_coefficient) * vel + loss_coefficient * grad_cyclic
 
         # Reshape velocity back to the original format
         vel = vel.view(n_batch, self._n_particles * self._n_dimension)
-        vel = remove_mean(vel)
+        vel = remove_mean(vel) # Center the CoM
 
-        self.counter += 1
-        return vel
+        self._cyclic_counter += 1
+        return vel.view(n_batch,  self._n_particles* self._n_dimension)
 
 class EGNN_dynamics_QM9(nn.Module):
     def __init__(self, in_node_nf, context_node_nf,
