@@ -79,8 +79,6 @@ def h2t_amide_loss(c1, ca1, n2, h2,
     torch.Tensor: Total loss for H2T amide bond, shape (batch_size).
     """
     # Compute individual losses
-    assert torch.all(torch.isfinite(c1)), f"c1 contains invalid values: {c1}"
-    assert torch.all(torch.isfinite(n2)), f"n2 contains invalid values: {n2}"
 
     dist_loss = distance_loss(c1, n2, target_distance, distance_tolerance)  # Shape: (batch_size)
     angle1_loss = bond_angle_loss(ca1, c1, n2, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
@@ -88,9 +86,7 @@ def h2t_amide_loss(c1, ca1, n2, h2,
     dihedral_loss = dihedral_angle_loss(ca1, c1, n2, h2, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
     # Combine all losses
-    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
-
-    assert torch.all(torch.isfinite(total_loss)), f"total_loss contains something non_finite! total_loss: {total_loss}"
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
 
     return total_loss
 
@@ -695,13 +691,16 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
             Parameters:
             ----------
-            positions (torch.Tensor): Tensor of shape (N_batch, N_atoms, 3) representing the atomic positions.
+            positions (torch.Tensor): Tensor of shape (n_batch, n_atoms, 3) representing the atomic positions.
 
             Returns:
             -------
             torch.Tensor: Total cyclization loss as a scalar.
             """
-            
+
+            # Each loss must take an input of the shape (n_batch, n_atoms, 3) and output smthng of shape (n_batch, )
+            # meaning the overall output of this function should eb of shape (n_loss, n_batch)...
+
             batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=1) # check the required shape...
             # batched losses should be of shape (n_batches, n_losses)
 

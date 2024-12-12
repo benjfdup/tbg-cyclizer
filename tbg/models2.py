@@ -525,12 +525,8 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         n_batch = xs.shape[0]
         vel = super().forward(t, xs) # disable grad for this?
 
-        if torch.any(torch.isnan(xs)): #huh... not working???
-            print('--------========== ISNAN CONDITION TRIGGERED ==========--------')
-            return vel
-
         # Now re-enable gradient tracking for cyclic loss
-        xs.requires_grad_(True) # will this work? we shall see.
+        #xs.requires_grad_(True) # will this work? we shall see.
         cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension)) ### TODO: ahh, this seems to create the error...
 
         grad_cyclic = torch.autograd.grad( ### see if this works...
@@ -539,8 +535,6 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
 
         # Scale cyclic loss gradient by w_t(t)
         loss_coefficient = self.w_t(t)
-
-        print
 
         # Add the scaled gradient to the velocity
         vel = (1 - loss_coefficient) * vel + loss_coefficient * grad_cyclic
