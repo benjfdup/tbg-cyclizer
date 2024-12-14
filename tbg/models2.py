@@ -527,17 +527,27 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
 
         # Now re-enable gradient tracking for cyclic loss
         #xs.requires_grad_(True) # will this work? we shall see.
-        cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension)) ### TODO: ahh, this seems to create the error...
+        cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension)) # wrong shape....
+        assert torch.all(torch.isfinite(cyclic_loss))
+
+        ### Lets try clipping the gradients, shall we?
 
         grad_cyclic = torch.autograd.grad( ### see if this works...
             cyclic_loss, xs, grad_outputs=torch.ones_like(cyclic_loss), create_graph=True
             )[0].view(n_batch,  self._n_particles* self._n_dimension)
+        
+        # Clip gradients by norm
+        #max_norm = 0.1  # Set your desired maximum gradient norm
+        #grad_norm = torch.norm(grad_cyclic, dim=1, keepdim=True)  # Compute norm along the batch dimension
+
+        # Apply gradient clipping
+        #grad_cyclic = grad_cyclic * torch.clamp(max_norm / (grad_norm + 1e-8), max=1.0)
 
         # Scale cyclic loss gradient by w_t(t)
-        loss_coefficient = self.w_t(t)
+        loss_coeff = self.w_t(t)
 
         # Add the scaled gradient to the velocity
-        vel = (1 - loss_coefficient) * vel + loss_coefficient * grad_cyclic
+        vel = (1 - loss_coeff) * vel + loss_coeff * grad_cyclic
 
         # Reshape velocity back to the original format
         vel = vel.view(n_batch, self._n_particles * self._n_dimension)

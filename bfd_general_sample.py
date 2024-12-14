@@ -125,6 +125,7 @@ brute_force_estimator = BruteForceEstimator()
 
 loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
                                         strategies=['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t'],
+                                        alpha = -0.5,
                                         )
 
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
@@ -198,7 +199,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 6 #10 #45 #400
+n_samples = 10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))

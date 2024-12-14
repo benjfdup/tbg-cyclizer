@@ -33,9 +33,13 @@ def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb,
     Compute the disulfide loss for a specific pair of cysteine residues.
 
     Parameters:
+    ----------
     cys1_s (torch.Tensor): Sulfur position of the first cysteine, shape (batch_size, 3).
+
     cys1_cb (torch.Tensor): Beta carbon position of the first cysteine, shape (batch_size, 3).
+
     cys2_s (torch.Tensor): Sulfur position of the second cysteine, shape (batch_size, 3).
+
     cys2_cb (torch.Tensor): Beta carbon position of the second cysteine, shape (batch_size, 3).
 
     Returns:
@@ -64,18 +68,29 @@ def h2t_amide_loss(c1, ca1, n2, h2,
     Compute the loss for forming an amide bond between the head and tail residues.
 
     Parameters:
+    ----------
     c1 (torch.Tensor): Carbonyl carbon atom of the first residue, shape (batch_size, 3).
+
     ca1 (torch.Tensor): Alpha carbon atom of the first residue, shape (batch_size, 3).
+
     n2 (torch.Tensor): Amide nitrogen atom of the second residue, shape (batch_size, 3).
+
     h2 (torch.Tensor): Hydrogen attached to the amide nitrogen of the second residue, shape (batch_size, 3).
+
     target_distance (float): Ideal C-N bond distance in Å.
+
     target_bond_angle (float): Ideal bond angle in radians.
+
     target_dihedral_angle (float): Ideal dihedral angle in radians.
+
     distance_tolerance (float): Acceptable deviation in distance without penalty.
+
     angle_tolerance (float): Acceptable deviation in angles without penalty.
+
     steepness (float): Controls steepness of penalties.
 
     Returns:
+    -------
     torch.Tensor: Total loss for H2T amide bond, shape (batch_size).
     """
     # Compute individual losses
@@ -124,7 +139,7 @@ def side_chain_amide_loss(n_side_chain, c_carboxyl, side_chain_anchor, carboxyl_
         For aspartic acid or glutamic acid, this would be the CB atom.
     
     Optional Parameters:
-    ----------
+    -------------------
     target_distance (float): 
         Ideal bond distance between the side-chain nitrogen and the carboxyl carbon in Ångstroms (default: 1.33).
 
@@ -255,17 +270,17 @@ def thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor,
     """
 
     # Distance Loss (S-C bond)
-    dist_loss = distance_loss(sulfur_atom, carbon_atom, target_distance, distance_tolerance)  # Shape: (batch_size)
+    dist_loss = distance_loss(sulfur_atom, carbon_atom, target_distance, distance_tolerance)  # Shape: (batch_size, )
 
     # Bond Angle Losses
-    angle1_loss = bond_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
-    angle2_loss = bond_angle_loss(sulfur_atom, carbon_atom, carbon_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle1_loss = bond_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
+    angle2_loss = bond_angle_loss(sulfur_atom, carbon_atom, carbon_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Dihedral Angle Loss (Planarity)
-    dihedral_loss = dihedral_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, carbon_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
+    dihedral_loss = dihedral_angle_loss(sulfur_anchor, sulfur_atom, carbon_atom, carbon_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Combine all losses
-    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
 
     return total_loss
 
@@ -345,17 +360,17 @@ def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_ancho
     """
 
     # Distance Loss (O-C bond)
-    dist_loss = distance_loss(oxygen_hydroxyl, carbon_carboxyl, target_distance, distance_tolerance)  # Shape: (batch_size)
+    dist_loss = distance_loss(oxygen_hydroxyl, carbon_carboxyl, target_distance, distance_tolerance)  # Shape: (batch_size, )
 
     # Bond Angle Losses
-    angle1_loss = bond_angle_loss(hydroxyl_anchor, oxygen_hydroxyl, carbon_carboxyl, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
-    angle2_loss = bond_angle_loss(oxygen_hydroxyl, carbon_carboxyl, carboxyl_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle1_loss = bond_angle_loss(hydroxyl_anchor, oxygen_hydroxyl, carbon_carboxyl, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
+    angle2_loss = bond_angle_loss(oxygen_hydroxyl, carbon_carboxyl, carboxyl_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Dihedral Angle Loss (Planarity)
-    dihedral_loss = dihedral_angle_loss(hydroxyl_anchor, oxygen_hydroxyl, carbon_carboxyl, carboxyl_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
+    dihedral_loss = dihedral_angle_loss(hydroxyl_anchor, oxygen_hydroxyl, carbon_carboxyl, carboxyl_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Combine all losses
-    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
 
     return total_loss
 
@@ -420,17 +435,17 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
     """
 
     # Distance Loss (N=C bond)
-    dist_loss = distance_loss(nitrogen_hydrazine, carbon_carbonyl, target_distance, distance_tolerance)  # Shape: (batch_size)
+    dist_loss = distance_loss(nitrogen_hydrazine, carbon_carbonyl, target_distance, distance_tolerance)  # Shape: (batch_size, )
 
     # Bond Angle Losses
-    angle1_loss = bond_angle_loss(hydrazine_anchor, nitrogen_hydrazine, carbon_carbonyl, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
-    angle2_loss = bond_angle_loss(nitrogen_hydrazine, carbon_carbonyl, carbonyl_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
+    angle1_loss = bond_angle_loss(hydrazine_anchor, nitrogen_hydrazine, carbon_carbonyl, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
+    angle2_loss = bond_angle_loss(nitrogen_hydrazine, carbon_carbonyl, carbonyl_anchor, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Dihedral Angle Loss (Planarity)
-    dihedral_loss = dihedral_angle_loss(hydrazine_anchor, nitrogen_hydrazine, carbon_carbonyl, carbonyl_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
+    dihedral_loss = dihedral_angle_loss(hydrazine_anchor, nitrogen_hydrazine, carbon_carbonyl, carbonyl_anchor, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size, )
 
     # Combine all losses
-    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
 
     return total_loss
 
@@ -667,7 +682,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                     n2=n2_index,  # N-terminal nitrogen
                     h2=h2_index:  # Hydrogen attached to N-terminal nitrogen
                     h2t_amide_loss(
-                        pos[:, c1, :].squeeze(), 
+                        pos[:, c1, :].squeeze(), # this is, fundamentally, what you need to check.
                         pos[:, ca1, :].squeeze(), 
                         pos[:, n2, :].squeeze(), 
                         pos[:, h2, :].squeeze(),
@@ -701,12 +716,14 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
             # Each loss must take an input of the shape (n_batch, n_atoms, 3) and output smthng of shape (n_batch, )
             # meaning the overall output of this function should eb of shape (n_loss, n_batch)...
 
-            batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=1) # check the required shape...
+            batched_losses = torch.stack([loss(positions) for loss in loss_functions], dim=1).squeeze() # check the required shape...
             # batched losses should be of shape (n_batches, n_losses)
 
             # soft_min expects an input of the shape (n_batches, n_losses)
 
-            return soft_min(batched_losses, alpha=self._alpha) # should be of shape (n_batch, )
+            result = soft_min(batched_losses, alpha=self._alpha) ### error then HAS to be here....
+
+            return result
         
         # Store strategies, loss functions, and residue pairs
         self._cyclization_loss = cyclization_loss

@@ -30,12 +30,13 @@ def bond_angle(a1, a2, a3):
     Returns:
     torch.Tensor: Bond angles of shape (batch_size, ), in radians.
     """
+    
     v1 = a1 - a2 # position of a1 relative to a2
     v2 = a3 - a2 # position of a3 relative to a2
 
     # Normalize vectors
-    v1_norm = v1 / torch.norm(v1, dim=-1, keepdim=True)
-    v2_norm = v2 / torch.norm(v2, dim=-1, keepdim=True)
+    v1_norm = v1 / torch.norm(v1, dim=-1, keepdim=True).clamp(min=1e-8)
+    v2_norm = v2 / torch.norm(v2, dim=-1, keepdim=True).clamp(min=1e-8)
 
     # Compute cosine of angles
     cos_theta = torch.sum(v1_norm * v2_norm, dim=-1).clamp(-1.0, 1.0)
@@ -50,20 +51,23 @@ def dihedral_angle(a1, a2, a3, a4):
     Parameters:
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
 
+    a2, a3 correspond to the line of intersection, whilst a1 & a4 correspond
+    to the extreme points that form the tips of their respective triangles.
+
     Returns:
     torch.Tensor: Dihedral angles of shape (batch_size, ), in radians.
     """
-    v1 = a2 - a1 # bond from 1 to 2
-    v2 = a3 - a2 # bond from 2 to 3
-    v3 = a4 - a3 # bond from 3 to 4
+    v1 = a2 - a1 # line from first horn to line of intersection (v12)
+    v2 = a3 - a2 # line of intersection (v23)
+    v3 = a4 - a3 # line from line of intersection to second horn (v34)
 
     # Normal vectors to planes
     n1 = torch.cross(v1, v2, dim=-1)
     n2 = torch.cross(v2, v3, dim=-1)
 
     # Normalize normal vectors
-    n1_norm = n1 / torch.norm(n1, dim=-1, keepdim=True)
-    n2_norm = n2 / torch.norm(n2, dim=-1, keepdim=True)
+    n1_norm = n1 / torch.norm(n1, dim=-1, keepdim=True).clamp(min=1e-8)
+    n2_norm = n2 / torch.norm(n2, dim=-1, keepdim=True).clamp(min=1e-8)
 
     # Dot product for cosine of dihedral angle
     cos_theta = torch.sum(n1_norm * n2_norm, dim=-1).clamp(-1.0, 1.0)
@@ -118,7 +122,6 @@ def bond_angle_loss(a1, a2, a3, target_angle, tolerance=0.0):
     penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
 
     result = penalty
-    assert torch.all(torch.isfinite(result)), f"bond_angle_loss yielded something non finite! result: {result}"
 
     return result
 
@@ -141,11 +144,12 @@ def dihedral_angle_loss(a1, a2, a3, a4, target_angle, tolerance=0.0):
     penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
 
     result = penalty
-    assert torch.all(torch.isfinite(result)), f"dihedral_angle_loss yielded something non finite! result: {result}"
 
     return result
 
-def motif_absolute(*argv, target_structure):
+### TODO: YOU CAN VERY LIKELY ABSTRACT BITS OF THE ABOVE FUNCTIONS AWAY, BUT FOR NOW ITS OK.
+
+def motif_absolute(*argv, target_structure): ### TODO: IMPLEMENT THIS
     """
     Compute a rotationally invariant loss based on relative structures.
 
@@ -159,18 +163,25 @@ def motif_absolute(*argv, target_structure):
     
     pass
 
-def soft_min(inputs, alpha=-10):
+def soft_min(inputs, alpha=-10): ### ahh... inputs seems to be an issue... wrong shape. its of shape (n_batch, )
+    # but not of shape (n_batch, n_loss)
     """
     Compute soft minimum across batches; as alpha -> -inf, becomes a hard minimum. As alpha -> 0, becomes
     a simple average. as alpha -> +inf, becomes a hard maximum
 
     Parameters:
-    inputs (torch.Tensor): Tensor of shape (n_batch, n_losses).
+    ----------
+    inputs (torch.Tensor): Tensor of shape (n_batch, n_losses). This represents each of the different cyclic
+    losses for each batch
+
     alpha (float): Smoothness parameter.
 
     Returns:
-    torch.Tensor: Soft minimum for each batch of shape (batch_size).
+    -------
+    torch.Tensor: Soft minimum for each batch of shape (batch_size, ).
     """
 
     exps = torch.exp(alpha * inputs)
-    return torch.sum(inputs * exps, dim=-1) / torch.sum(exps, dim=-1)
+    result = torch.sum(inputs * exps, dim=-1) / torch.sum(exps, dim=-1)
+    
+    return result
