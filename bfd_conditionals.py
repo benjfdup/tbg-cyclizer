@@ -1,13 +1,46 @@
 ### Imports ###
 import torch
-import numpy as np
 import mdtraj as md
 
 from bfd_constituent_losses import soft_min
 from bfd_constants import *
 from bfd_specific_losses import *
 
+### This file contains all of the code and organizational functions necessary to easily handle loss implementation.
 # TODO: need to add devices to the default tensor values (which are used when no other value is specified)
+
+def gaussian_w_t(mu, s, coeff = 1):
+    '''
+    Generates a function thich takes a tensor of shape (1, ) as an input and outputs
+    a number between 0 & 1, representing the loss gradient coefficient for that particular time.
+
+    Args:
+    ----
+    mu (float): the temporal location of the maximum. Must be between 0 & 1
+    s (float): the width of the maximum. Must be > 0
+
+    Returns:
+    -------
+    w_t (torch.Tensor): the loss coefficient for that particular moment in time.
+    '''
+
+    w_t = lambda t: (coeff * torch.exp(-0.5 * ((t - mu) / s)**2)).clamp(0, 1)
+
+    w_t.__doc__ = f'''
+    Returns the loss coefficient for the specified moment in time. This family is drawn from
+    a "pseudo-gaussian" with params mu: {mu}, s: {s}, coeff: {coeff}.
+
+    Args:
+    ----
+    t (float): a float between 0 & 1 representing the moment in time of evaluation.
+
+    Returns:
+    -------
+    w (float): a float between 0 & 1 representing the loss coefficient at that moment.
+
+    '''
+
+    return w_t
 
 def precompute_atom_indices(residues, atom_names):
     """
