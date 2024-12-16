@@ -1,4 +1,7 @@
 ### Imports ###
+import warnings
+import math
+
 import torch
 import mdtraj as md
 
@@ -24,6 +27,10 @@ def gaussian_w_t(mu, s, coeff = 1):
     w_t (torch.Tensor): the loss coefficient for that particular moment in time.
     '''
 
+    if not (0 < coeff <= 1):
+        warnings.warn(f"""Warning. The output function will produce values out of the acceptable (0, 1]
+                      range. coeff={coeff} should be in (0, 1]""")
+
     w_t = lambda t: (coeff * torch.exp(-0.5 * ((t - mu) / s)**2)).clamp(0, 1)
 
     w_t.__doc__ = f'''
@@ -39,6 +46,17 @@ def gaussian_w_t(mu, s, coeff = 1):
     w (float): a float between 0 & 1 representing the loss coefficient at that moment.
 
     '''
+
+    return w_t
+
+def maxwell_boltzmann_w_t(a):
+    '''
+    this function is normalized, save when it is out of (0, 1].
+    need to implement relevant warnings.
+    '''
+    pi = torch.tensor(math.pi)
+
+    w_t = lambda t: torch.sqrt(2 / pi) * (t**2 / a**3) * torch.exp(-t**2 / (2 * a**2))
 
     return w_t
 

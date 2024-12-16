@@ -8,7 +8,7 @@ from bgflow.utils import as_numpy
 from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution, BlackBoxDynamics, BruteForceEstimator
 from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic, EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 
-from bfd_conditionals import cyclization_loss_handler
+from bfd_conditionals import cyclization_loss_handler, gaussian_w_t
 from bfd_constants import *
 
 ### THINGS TO CHANGE vvv
@@ -128,11 +128,13 @@ loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
                                         alpha = -0.5,
                                         )
 
+w_t = gaussian_w_t(mu=0.5, s=0.1)
+
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
     ### This might not work in this context, but lets just try it
     with_dlogp=with_dlogp,
     pdb_file=pdb_path,
-    w_t= lambda t : 0.01,
+    w_t=w_t,
     l_cyclic=loss_handler.compute_loss,
     #l_cyclic= lambda x: (0.01 * x ** 2).sum(dim=(1, 2)),
     n_particles=n_particles,

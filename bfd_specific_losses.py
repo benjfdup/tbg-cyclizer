@@ -432,3 +432,76 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
 
     return total_loss
 
+def bis_thioether_loss(sulfur1, carbon1, sulfur2, carbon2, 
+                       target_distance=2.0,  # Typical S-C bond distance in Å
+                       target_bond_angle=torch.deg2rad(torch.tensor(109.5)),  # Ideal tetrahedral bond angle
+                       target_dihedral_angle=torch.deg2rad(torch.tensor(180.0)),  # Planarity of macrocycle
+                       distance_tolerance=0.2,  # Acceptable tolerance for bond distances
+                       angle_tolerance=0.1,  # Acceptable tolerance for bond angles
+                       steepness=1.0):  # Controls steepness of penalties
+    """
+    Computes the loss for forming bis-thioether macrocycles.
+
+    This loss evaluates the geometric constraints required for proper bis-thioether macrocycle 
+    formation, which involves sulfur atoms (e.g., from cysteine) forming bonds with carbon atoms 
+    on another residue's side chain.
+
+    Parameters:
+    ----------
+    sulfur1 (torch.Tensor): 
+        Position of the first sulfur atom (e.g., SG of cysteine), shape (batch_size, 3).
+        
+    carbon1 (torch.Tensor): 
+        Position of the first carbon atom bonded to the first sulfur, shape (batch_size, 3).
+
+    sulfur2 (torch.Tensor): 
+        Position of the second sulfur atom, shape (batch_size, 3).
+
+    carbon2 (torch.Tensor): 
+        Position of the second carbon atom bonded to the second sulfur, shape (batch_size, 3).
+
+    target_distance (float): 
+        Ideal S-C bond distance in Å (default: 2.0).
+
+    target_bond_angle (float): 
+        Ideal bond angle around the S-C bonds in radians (default: 109.5°).
+
+    target_dihedral_angle (float): 
+        Ideal dihedral angle for the macrocycle in radians (default: 180°).
+
+    distance_tolerance (float): 
+        Acceptable deviation range for bond distances, below which no penalty is applied.
+
+    angle_tolerance (float): 
+        Acceptable deviation range for bond angles, below which no penalty is applied.
+
+    steepness (float): 
+        Controls the steepness of the penalties for deviations from the ideal geometry.
+
+    Returns:
+    -------
+    torch.Tensor:
+        Total loss for bis-thioether macrocycle across all batches, shape (batch_size).
+
+    Applicability:
+    --------------
+    This loss is used for enforcing bis-thioether macrocycle formation in peptides, particularly 
+    in stabilizing helix capping or other macrocyclic designs. Suitable residues typically involve 
+    cysteines forming covalent bonds with alkyl groups.
+    """
+
+    # Distance Losses for S-C bonds
+    dist_loss1 = distance_loss(sulfur1, carbon1, target_distance, distance_tolerance)  # Shape: (batch_size, )
+    dist_loss2 = distance_loss(sulfur2, carbon2, target_distance, distance_tolerance)  # Shape: (batch_size, )
+
+    # Bond Angle Losses
+    angle1_loss = bond_angle_loss(carbon1, sulfur1, carbon2, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
+    angle2_loss = bond_angle_loss(carbon2, sulfur2, carbon1, target_bond_angle, angle_tolerance)  # Shape: (batch_size, )
+
+    # Dihedral Angle Loss for macrocycle planarity
+    dihedral_loss = dihedral_angle_loss(carbon1, sulfur1, sulfur2, carbon2, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size, )
+
+    # Combine all losses
+    total_loss = dist_loss1 + dist_loss2 + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
+
+    return total_loss
