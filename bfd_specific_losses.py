@@ -7,7 +7,7 @@ from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, distanc
 ### Defining the chemically specific losses
 def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb, 
                    target_distance=2.05, # Typical bond length in Å (?)
-                   target_bond_angle=torch.deg2rad(torch.tensor(110.0)), # Typical bond angles in radians (?)
+                   target_bond_angle=torch.deg2rad(torch.tensor(102.5)), # Typical bond angles in radians (?)
                    target_dihedral_angle=torch.deg2rad(torch.tensor(90.0)), # Typical bond angles in radians (?)
                    distance_tolerance=0.2, 
                    angle_tolerance=0.1, 
@@ -270,9 +270,9 @@ def thioether_loss(sulfur_atom, carbon_atom, sulfur_anchor, carbon_anchor,
 def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_anchor,
                target_distance=1.4,  # Typical O-C bond distance in Å
                target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Ester bond angles
-               target_dihedral_angle=torch.deg2rad(torch.tensor(90)),  # Ester bond dihedral angle (check...)
+               target_dihedral_angle=torch.deg2rad(torch.tensor(15.0)),  # Ester bond dihedral angle (check...)
                distance_tolerance=0.1,  # No-penalty range for distances
-               angle_tolerance=0.1,  # No-penalty range for angles
+               angle_tolerance=0.2,  # No-penalty range for angles
                steepness=1.0):  # Factor controlling penalty steepness
     """
     Computes the loss for forming ester bonds in a parallelized way over batches.
@@ -358,7 +358,7 @@ def ester_loss(oxygen_hydroxyl, carbon_carboxyl, hydroxyl_anchor, carboxyl_ancho
     return total_loss
 
 def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbonyl_anchor,
-                   target_distance=1.45,  # Typical N=C bond distance in Å
+                   target_distance=1.28,  # Typical N=C bond distance in Å
                    target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Typical hydrazone bond angles
                    target_dihedral_angle=torch.deg2rad(torch.tensor(180.0)),  # Planarity of hydrazone bond
                    distance_tolerance=0.1,  # No-penalty range for distances
@@ -433,7 +433,7 @@ def hydrazone_loss(nitrogen_hydrazine, carbon_carbonyl, hydrazine_anchor, carbon
     return total_loss
 
 def bis_thioether_loss(sulfur1, carbon1, sulfur2, carbon2, 
-                       target_distance=2.0,  # Typical S-C bond distance in Å
+                       target_distance=1.82,  # Typical S-C bond distance in Å
                        target_bond_angle=torch.deg2rad(torch.tensor(109.5)),  # Ideal tetrahedral bond angle
                        target_dihedral_angle=torch.deg2rad(torch.tensor(180.0)),  # Planarity of macrocycle
                        distance_tolerance=0.2,  # Acceptable tolerance for bond distances

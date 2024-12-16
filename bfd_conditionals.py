@@ -127,7 +127,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
             return torch.stack([positions[idx] for idx in indices], dim=0)
 
         if "disulfide" in self._strategies: 
-            cysteines = [r for r in residue_list if r.name == "CYS"]
+            cysteines = [r for r in residue_list if r.resname == "CYS"]
             if len(cysteines) > 1:
                 for i, cys_1 in enumerate(cysteines):
                     for cys_2 in cysteines[i + 1:]:  # Avoid duplicate pairs
@@ -158,8 +158,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                         ))
                         
         if "side_chain_amide" in self._strategies:
-            carboxyl_residues = [r for r in residue_list if r.name in ["ASP", "GLU"]]
-            amine_residues = [r for r in residue_list if r.name in ["LYS", "ORN"]]
+            carboxyl_residues = [r for r in residue_list if r.resname in ["ASP", "GLU"]]
+            amine_residues = [r for r in residue_list if r.resname in ["LYS", "ORN"]]
             if carboxyl_residues and amine_residues:
                 for carboxyl in carboxyl_residues:
                     for amine in amine_residues:
@@ -189,8 +189,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                         ))
 
         if "thioether" in self._strategies:
-            thiol_residues = [r for r in residue_list if r.name in ["CYS", "MET"]]
-            alkyl_residues = [r for r in residue_list if r.name in ["LYS", "ORN", "ALA"]]  # Example residues with alkyl groups
+            thiol_residues = [r for r in residue_list if r.resname in ["CYS", "MET"]]
+            alkyl_residues = [r for r in residue_list if r.resname in ["LYS", "ORN", "ALA"]]  # Example residues with alkyl groups
             if thiol_residues and alkyl_residues:
                 for thiol in thiol_residues:
                     for alkyl in alkyl_residues:
@@ -219,9 +219,40 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                             (thiol.index, alkyl.index)
                         ))
 
+        if "bis_thioether" in self._strategies:
+            sulfur_residues = [r for r in residue_list if r.resname in ["CYS"]]
+            carbon_residues = [r for r in residue_list if r.resname in ["LYS", "ALA"]]
+
+            if sulfur_residues and carbon_residues:
+                for sulfur in sulfur_residues:
+                    for carbon in carbon_residues:
+                        sulfur_indices = get_atom_indices(sulfur, ["SG", "CB"])
+                        carbon_indices = get_atom_indices(carbon, ["CE", "CB"])
+                        
+                        # Add bis-thioether loss function
+                        loss_functions.append(
+                            lambda pos, 
+                            s_idx=sulfur_indices[0], 
+                            c_idx=carbon_indices[0], 
+                            s_anchor=sulfur_indices[1], 
+                            c_anchor=carbon_indices[1]:
+                            bis_thioether_loss(
+                                pos[:, s_idx, :].squeeze(),  # Sulfur atom
+                                pos[:, c_idx, :].squeeze(),  # Carbon atom
+                                pos[:, s_anchor, :].squeeze(),  # Sulfur anchor
+                                pos[:, c_anchor, :].squeeze()  # Carbon anchor
+                            )
+                        )
+                        
+                        # Append strategy and indices
+                        strategies_indices_pair_list.append((
+                            "bis_thioether", 
+                            (sulfur.index, carbon.index)
+                        ))
+
         if "ester" in self._strategies:
-            serine_residues = [r for r in residue_list if r.name == "SER"]
-            glutamate_residues = [r for r in residue_list if r.name == "GLU"]
+            serine_residues = [r for r in residue_list if r.resname == "SER"]
+            glutamate_residues = [r for r in residue_list if r.resname == "GLU"]
             if serine_residues and glutamate_residues:
                 for ser in serine_residues:
                     for glu in glutamate_residues:
@@ -253,8 +284,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                         ))
 
         if "hydrazone" in self._strategies:
-            lysine_residues = [r for r in residue_list if r.name == "LYS"]
-            aldehyde_residues = [r for r in residue_list if r.name == "CHO"]  # Hypothetical example, non-canonical AA
+            lysine_residues = [r for r in residue_list if r.resname == "LYS"]
+            aldehyde_residues = [r for r in residue_list if r.resname == "CHO"]  # Hypothetical example, non-canonical AA
             if lysine_residues and aldehyde_residues:
                 for lys in lysine_residues:
                     for cho in aldehyde_residues:
