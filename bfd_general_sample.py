@@ -12,7 +12,7 @@ from bfd_conditionals import cyclization_loss_handler, gaussian_w_t
 from bfd_constants import *
 
 ### THINGS TO CHANGE vvv
-pdb_path = "/home/bfd21/rds/hpc-work/sample_cyclic_md/ligand-only/dummy1/l1.pdb"
+pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
 
 filename = "Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth" # model to be used for inference
 PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/{filename}" # path to model dir
@@ -23,9 +23,9 @@ if save_dir[-1] != "/": # DON'T CHANGE
     save_dir += "/" # DON'T CHANGE
 
 save_data_name = "bb_all_sc_adj_plus_l_cyclic" # DO NOT INCLUDE .npz extension here...
-### THINGS TO CHANGE ^^^
 
 with_dlogp = False
+### THINGS TO CHANGE ^^^
 
 # Extract the directory part from the template
 save_dir_path = os.path.dirname(save_dir)

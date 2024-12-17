@@ -16,7 +16,6 @@ atom_types_ecoding = {
     'CG1': 11, 
     'CG2': 12, 
     'CH2': 13,
-    'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution
     'CZ': 14, 
     'CZ2': 15, 
     'CZ3': 16, 
@@ -57,6 +56,7 @@ atom_types_ecoding = {
     'OXT': 51, 
     'SD': 52, 
     'SG': 53,
+    'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution. Remove likely.
     }
 # need to add CL1 to this??
 
@@ -82,5 +82,7 @@ amino_dict = {
     "TYR": 18,
     "VAL": 19,
     "UNK": 20, # need to have a better way of handling this in the future...
+    "ACE": 21, # need to have a better way of handling this in the future...
+    "BEN": 22, # bis thioether cross linker. Will need to actually account for this in my cyclization code.
 }
 
