@@ -1,3 +1,8 @@
+###########################################
+# The intent of this file is simply to do one sanity check
+# otherwise it is identical to bfd_general_sample.py
+###########################################
+
 import tqdm
 import torch
 import numpy as np

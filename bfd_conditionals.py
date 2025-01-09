@@ -91,6 +91,24 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
         self._initialize_loss()
 
+    # getters vvv
+    @property
+    def strategies(self):
+        return self._strategies
+    
+    @property
+    def alpha(self):
+        return self._alpha
+    
+    @property
+    def device(self):
+        return self._device
+    
+    @property
+    def pdb_path(self):
+        return self._pdb_path
+    # getters ^^^
+
     def _initialize_loss(self):
         """
         Internal method to initialize the cyclization loss function for a peptide.
@@ -123,10 +141,6 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         loss_functions = []
         
         strategies_indices_pair_list = []
-
-        # Helper to convert atom positions into tensors
-        def extract_positions(indices, positions): # needed?
-            return torch.stack([positions[idx] for idx in indices], dim=0)
 
         if "disulfide" in self._strategies: 
             cysteines = [r for r in residue_list if r.name == "CYS"]
