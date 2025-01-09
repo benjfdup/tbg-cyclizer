@@ -100,7 +100,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         traj = md.load(self._pdb_path)
         topology = traj.topology
         residue_list = list(topology.residues)
-        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD"]
+        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD"] # consider expanding this?
         all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
 
         def get_atom_indices(residue, atom_names):

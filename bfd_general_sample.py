@@ -14,15 +14,15 @@ from bfd_constants import *
 ### THINGS TO CHANGE vvv
 pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
 
-filename = "Dec-5-2024-NO-SCALE-L1-bb_all_sc_adj.pth" # model to be used for inference
-PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-5-2024/{filename}" # path to model dir
+filename = "N-Cap2_bb_all_sc_adj.pth" # model to be used for inference
+PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/{filename}" # path to model dir
 
-save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Dec-9-2024/"
+save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-9-2025/"
 
 if save_dir[-1] != "/": # DON'T CHANGE
     save_dir += "/" # DON'T CHANGE
 
-save_data_name = "bb_all_sc_adj_plus_l_cyclic" # DO NOT INCLUDE .npz extension here...
+save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples" # DO NOT INCLUDE .npz extension here...
 
 with_dlogp = False
 ### THINGS TO CHANGE ^^^

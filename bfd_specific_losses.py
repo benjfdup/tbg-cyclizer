@@ -505,3 +505,10 @@ def bis_thioether_loss(sulfur1, carbon1, sulfur2, carbon2,
     total_loss = dist_loss1 + dist_loss2 + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size, )
 
     return total_loss
+
+def special_bis_thioether_loss():
+    '''
+    Special loss just for the sanity check.
+    '''
+    
+    pass

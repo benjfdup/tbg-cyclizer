@@ -22,13 +22,14 @@ import wandb
 
 from bfd_conditionals import amino_dict, atom_types_ecoding
 import os
+import gc
 
 ### THINGS TO CHANGE vvv
 log_dir = "/home/bfd21/rds/hpc-work/tbg/jobs/job-Dec-17" # where to store the training logs. Dont include slash at end
 proj_name = "bb_all_sc_adj_N-Cap2"
 
 pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
-data_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/processed_train.npz"
+data_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/processed_train.npy"
 
 # where to save the new model/load a previous model
 PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/N-Cap2_bb_all_sc_adj.pth"
@@ -62,7 +63,7 @@ for i, amino in enumerate(topology.residues): # looping over the individual amin
     for atom_name in amino.atoms:
         amino_idx.append(i) # will end up being of shape (n, ), where n is the total number of atoms. Each index represents
             
-        # whether the atom is in the first or second amino acid of the dipeptide.
+        # number corresponding to aa name.
         amino_types.append(amino_dict[amino.name])
 
         if atom_name.name[0] == "H" and atom_name.name[-1] in ("1", "2", "3"):
@@ -132,7 +133,12 @@ bb_dynamics = BlackBoxDynamics(
 flow = DiffEqFlow(dynamics=bb_dynamics)
 
 #actual training:
-data_smaller = torch.from_numpy(np.load(data_path)).float()
+data = np.load(data_path)
+data_smaller = torch.from_numpy(data.reshape(data.shape[0], -1)).float()
+
+del data  # Delete the large numpy array
+gc.collect()  # Force garbage collection to free up RAM
+
 batch_iter = IndexBatchIterator(len(data_smaller), n_batch)
 
 optim = torch.optim.Adam(flow.parameters(), lr=5e-4)
@@ -178,9 +184,7 @@ wandb.init(
 
 start_time = time.time()
 
-rate_switch_triggered = False # bool to prevent the learning rate switching block from continually executing.
-
-print('Beginning training:')
+rate_switch_triggered = False # bool to prevent the learning rate switching block from continually executing.print('Beginning training:')
 for epoch in tqdm(range(n_epochs), desc="Epoch Progress", unit="epoch"):
     if (epoch + start_epoch >= 500) and not rate_switch_triggered:
         rate_switch_triggered = True

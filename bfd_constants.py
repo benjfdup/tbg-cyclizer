@@ -57,8 +57,27 @@ atom_types_ecoding = {
     'SD': 52, 
     'SG': 53,
     'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution. Remove likely.
+    'CH3': 55, # CH3 group... Below & here is for the special case of the N-Cap2
+    'C1': 56,
+    'C2': 57,
+    'C3': 58,
+    'C4': 59,
+    'C5': 60,
+    'C6': 61,
+    'C7': 62,
+    'C8': 63,
+    'H2': 64,
+    'H4': 65,
+    'H5': 66,
+    'H6': 67,
+    'H7': 68,
+    'H71': 69,
+    'H8': 70,
+    'H81': 71,
+    'H82': 72,
+    'S1': 73,
+    'S2': 74,
     }
-# need to add CL1 to this??
 
 amino_dict = {
     "ALA": 0,
