@@ -219,6 +219,9 @@ for i in tqdm.tqdm(range(n_sample_batches)):
 
         #dlogp_np = np.append(dlogp_np, as_numpy(dlogp))
 
+    ### REALLY WANT TO ADD SOMETHING HERE WHICH SAVES WHAT THE SMALLEST LOSSES WERE FOR THAT BATCH... OR THEIR DISTRIBUTION???
+    ### PERHAPS A GOOD WAY TO DO THAT WOULD BE TO PICKLE AND SAVE THE LOSS HANDLER
+
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
     np.savez(

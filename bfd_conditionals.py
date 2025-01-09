@@ -100,7 +100,9 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         traj = md.load(self._pdb_path)
         topology = traj.topology
         residue_list = list(topology.residues)
-        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD"] # consider expanding this?
+        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", 
+                         'S1', 'S2', 'C1', 'C7',] # consider expanding this? # bottom row is just for special ben case.
+
         all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
 
         def get_atom_indices(residue, atom_names):
@@ -346,6 +348,42 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                     "h2t",
                     (terminal_residues[1].index, terminal_residues[0].index)
                 ))
+
+        if 'special' in self._strategies:
+            # Identify residues and atoms associated with the BEN linker
+            ben_residues = [r for r in residue_list if r.name == "BEN"]
+            if ben_residues:
+                for ben in ben_residues:
+                    # Extract individual atom indices for the BEN linker
+                    s1_index = get_atom_indices(ben, ["S1"])[0]  # Sulfur 1
+                    s2_index = get_atom_indices(ben, ["S2"])[0]  # Sulfur 2
+                    c1_index = get_atom_indices(ben, ["C1"])[0]  # Carbon 1
+                    c7_index = get_atom_indices(ben, ["C7"])[0]  # Carbon 7
+                    s1_anchor = get_atom_indices(ben, ["C7"])[0]  # Anchor for S1
+                    s2_anchor = get_atom_indices(ben, ["C1"])[0]  # Anchor for S2
+
+                    # Add the special bis-thioether loss function
+                    loss_functions.append(
+                        lambda pos,
+                        s1=s1_index, s2=s2_index,
+                        c1=c1_index, c7=c7_index,
+                        s1_anch=s1_anchor, s2_anch=s2_anchor:
+                        special_bis_thioether_loss(
+                            pos[:, s1, :].squeeze(),  # Sulfur 1
+                            pos[:, c1, :].squeeze(),  # Carbon 1
+                            pos[:, s2, :].squeeze(),  # Sulfur 2
+                            pos[:, c7, :].squeeze(),  # Carbon 7
+                            pos[:, s1_anch, :].squeeze(),  # S1 Anchor (e.g., C7)
+                            pos[:, s2_anch, :].squeeze(),  # S2 Anchor (e.g., C1)
+                        )
+                    )
+
+            # Append strategy and residue index to the list
+            strategies_indices_pair_list.append((
+                "special_bis_thioether",
+                (ben.index,)
+            ))
+
 
         # Add more strategies similarly...
 

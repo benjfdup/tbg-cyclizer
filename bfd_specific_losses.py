@@ -506,9 +506,49 @@ def bis_thioether_loss(sulfur1, carbon1, sulfur2, carbon2,
 
     return total_loss
 
-def special_bis_thioether_loss():
-    '''
-    Special loss just for the sanity check.
-    '''
-    
-    pass
+def special_bis_thioether_loss(sulfur1, carbon1, sulfur2, carbon2, aromatic_c1, aromatic_c7,
+                               target_distance_sc=1.82,  # S-C bond distance (Å)
+                               target_distance_cc=1.39,  # Aromatic C-C bond distance (Å)
+                               target_bond_angle=torch.deg2rad(torch.tensor(109.5)),  # Tetrahedral angle (sp3)
+                               target_aromatic_angle=torch.deg2rad(torch.tensor(120.0)),  # Aromatic angle (sp2)
+                               target_dihedral_angle=torch.deg2rad(torch.tensor(180.0)),  # Planarity
+                               distance_tolerance=0.2, angle_tolerance=0.1, steepness=1.0):
+    """
+    Computes the loss for the BEN bis-thioether macrocycle.
+
+    Parameters:
+    ----------
+    sulfur1, sulfur2: torch.Tensor
+        Positions of the sulfur atoms in the BEN linker, shape (batch_size, 3).
+    carbon1, carbon2: torch.Tensor
+        Positions of the carbons bonded to sulfur atoms, shape (batch_size, 3).
+    aromatic_c1, aromatic_c7: torch.Tensor
+        Positions of aromatic carbons in the BEN linker, shape (batch_size, 3).
+
+    Returns:
+    -------
+    torch.Tensor
+        Total loss for the BEN bis-thioether linker, shape (batch_size).
+    """
+    # S-C Distance Losses
+    dist_loss1 = distance_loss(sulfur1, carbon1, target_distance_sc, distance_tolerance)  # S1-C1
+    dist_loss2 = distance_loss(sulfur2, carbon2, target_distance_sc, distance_tolerance)  # S2-C7
+
+    # Aromatic C-C Distance Loss
+    aromatic_dist_loss = distance_loss(aromatic_c1, aromatic_c7, target_distance_cc, distance_tolerance)  # C1-C7
+
+    # Bond Angles (sp3 around sulfur)
+    angle1_loss = bond_angle_loss(carbon1, sulfur1, carbon2, target_bond_angle, angle_tolerance)  # C1-S1-C2
+    angle2_loss = bond_angle_loss(sulfur1, carbon1, aromatic_c1, target_aromatic_angle, angle_tolerance)  # S1-C1-C7
+    angle3_loss = bond_angle_loss(sulfur2, carbon2, aromatic_c7, target_aromatic_angle, angle_tolerance)  # S2-C7-C1
+
+    # Dihedral Angles (planarity of macrocycle)
+    dihedral_loss = dihedral_angle_loss(carbon1, sulfur1, sulfur2, carbon2, target_dihedral_angle, angle_tolerance)  # Macrocycle planarity
+
+    # Combine Losses
+    total_loss = (dist_loss1 + dist_loss2 +
+                  aromatic_dist_loss +
+                  angle1_loss + angle2_loss + angle3_loss +
+                  dihedral_loss)
+
+    return total_loss
