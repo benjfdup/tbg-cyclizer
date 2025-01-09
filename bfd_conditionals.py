@@ -440,9 +440,11 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         """
         Identify the smallest cyclization loss, its type, and the amino acids involved for each batch.
         """
+        #positions should be of shape (n_batch, n_atoms, 3)
+
         # Compute batched losses for each loss function
         batched_losses = torch.stack([loss(positions) for loss in self._loss_functions], dim=1) 
-        # Shape: (n_batch, n_loss_functions)
+        # Shape: (n_batch, n_loss_functions) where n_batch is the sample number in the batch
 
         # Find the index of the smallest loss for each batch
         min_indices = torch.argmin(batched_losses, dim=1)  # Shape: (n_batch,)

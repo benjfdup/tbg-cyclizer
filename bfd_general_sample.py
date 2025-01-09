@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import mdtraj as md
 import os
+import pickle
 
 from bgflow.utils import as_numpy
 from bgflow import DiffEqFlow, BoltzmannGenerator, MeanFreeNormalDistribution, BlackBoxDynamics, BruteForceEstimator
@@ -22,7 +23,7 @@ save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-9-2025/"
 if save_dir[-1] != "/": # DON'T CHANGE
     save_dir += "/" # DON'T CHANGE
 
-save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples" # DO NOT INCLUDE .npz extension here...
+save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples_conditional" # DO NOT INCLUDE .npz extension here...
 
 with_dlogp = False
 ### THINGS TO CHANGE ^^^
@@ -106,6 +107,7 @@ prior_cpu = MeanFreeNormalDistribution(dim, n_particles, two_event_dims=False)
 #)
 
 brute_force_estimator = BruteForceEstimator()
+#commented out is model for unconditional sampling.
 #net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent( ### CHANGE MODEL TO WHATEVER IS NECESSARY...
 #    pdb_file=pdb_path,
 #    n_particles=n_particles,
@@ -124,7 +126,8 @@ brute_force_estimator = BruteForceEstimator()
 #)
 
 loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
-                                        strategies=['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t'],
+                                        strategies=['disulfide', 'amide', 'side_chain_amide', 'thioether', 
+                                                    'ester', 'hydrazone', 'h2t', 'special'],
                                         alpha = -0.5,
                                         )
 
@@ -206,7 +209,7 @@ n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
 dlogp_np = np.empty(shape=(0))
-print(f"Start sampling with {filename}")
+print(f"-------======= START SAMPLING WITH {filename} =======-------")
 
 for i in tqdm.tqdm(range(n_sample_batches)):
     with torch.no_grad():
@@ -224,9 +227,23 @@ for i in tqdm.tqdm(range(n_sample_batches)):
 
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
+
     np.savez(
         f"{save_dir}{save_data_name}_batch-{i}.npz",
         latent_np=latent_np,
         samples_np=samples_np,
         #dlogp_np=dlogp_np,
     )
+    print(f'saved batch #{i}')
+
+
+# Define the file path to save the loss_handler
+loss_handler_save_path = f"{save_dir}{save_data_name}_loss_handler.pkl"
+
+# Save the loss_handler using pickle
+with open(loss_handler_save_path, "wb") as f:
+    pickle.dump(loss_handler, f)
+
+print(f"loss_handler saved to {loss_handler_save_path}")
+
+print('-------======= DONE SAMPLING =======-------')
