@@ -12,7 +12,7 @@ from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic, EGNN_dynamic
 from bfd_conditionals import cyclization_loss_handler, gaussian_w_t
 from bfd_constants import *
 
-### THINGS TO CHANGE vvv
+### -----===== THINGS TO CHANGE =====----- vvv
 pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
 
 filename = "N-Cap2_bb_all_sc_adj.pth" # model to be used for inference
@@ -25,8 +25,11 @@ if save_dir[-1] != "/": # DON'T CHANGE
 
 save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples_conditional" # DO NOT INCLUDE .npz extension here...
 
+strategies = ['special', 'hydrazone', 'amide']
+#['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
+
 with_dlogp = False
-### THINGS TO CHANGE ^^^
+### -----===== THINGS TO CHANGE =====----- ^^^
 
 # Extract the directory part from the template
 save_dir_path = os.path.dirname(save_dir)
@@ -126,8 +129,7 @@ brute_force_estimator = BruteForceEstimator()
 #)
 
 loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
-                                        strategies=['disulfide', 'amide', 'side_chain_amide', 'thioether', 
-                                                    'ester', 'hydrazone', 'h2t', 'special'],
+                                        strategies=strategies,
                                         alpha = -0.5,
                                         )
 
@@ -204,12 +206,14 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 10 #45 #400
+n_samples = 20 #10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
 dlogp_np = np.empty(shape=(0))
-print(f"-------======= START SAMPLING WITH {filename} =======-------")
+print(f"""
+      -------======= START SAMPLING WITH {filename} =======-------
+      """)
 
 for i in tqdm.tqdm(range(n_sample_batches)):
     with torch.no_grad():
@@ -246,4 +250,6 @@ with open(loss_handler_save_path, "wb") as f:
 
 print(f"loss_handler saved to {loss_handler_save_path}")
 
-print('-------======= DONE SAMPLING =======-------')
+print(f'''
+      -------======= DONE SAMPLING WITH {filename} =======-------
+      ''')

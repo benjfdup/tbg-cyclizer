@@ -100,12 +100,12 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         traj = md.load(self._pdb_path)
         topology = traj.topology
         residue_list = list(topology.residues)
-        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", 
+        bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD",
                          'S1', 'S2', 'C1', 'C7',] # consider expanding this? # bottom row is just for special ben case.
 
         all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
 
-        def get_atom_indices(residue, atom_names):
+        def get_atom_indices(residue, atom_names): # why is this asking for something that doesn't exist...
             """
             Retrieves the atom indices for specified atom names in a given residue.
 
