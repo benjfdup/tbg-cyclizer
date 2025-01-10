@@ -1,7 +1,7 @@
-###########################################
+######################################################################################
 # The intent of this file is simply to do one sanity check
 # otherwise it is identical to bfd_general_sample.py
-###########################################
+######################################################################################
 
 import tqdm
 import torch
@@ -19,6 +19,7 @@ from bfd_constants import *
 
 ### vvv -----===== THINGS TO CHANGE =====----- vvv
 pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
+pdb_path_sanity = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system_sanity.pdb"
 
 filename = "N-Cap2_bb_all_sc_adj.pth" # model to be used for inference
 PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/{filename}" # path to model dir
@@ -30,7 +31,7 @@ if save_dir[-1] != "/": # DON'T CHANGE
 
 save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples_conditional" # DO NOT INCLUDE .npz extension here...
 
-strategies = ['special', 'disulfide']
+strategies = ['special', 'h2t']
 #['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
 
 with_dlogp = False
@@ -133,7 +134,7 @@ brute_force_estimator = BruteForceEstimator()
 #    agg="sum",
 #)
 
-loss_handler = cyclization_loss_handler(pdb_path = pdb_path,
+loss_handler = cyclization_loss_handler(pdb_path = pdb_path_sanity,
                                         strategies=strategies,
                                         alpha = -0.5,
                                         )
