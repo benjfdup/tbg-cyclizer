@@ -24,18 +24,18 @@ pdb_path_sanity = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system_s
 filename = "N-Cap2_bb_all_sc_adj.pth" # model to be used for inference
 PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/{filename}" # path to model dir
 
-save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-9-2025/"
+save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-11-2025/"
 
-if save_dir[-1] != "/": # DON'T CHANGE
-    save_dir += "/" # DON'T CHANGE
+save_data_name = "N-Cap2_bb_all_sc_adj_jan_11_samples_conditional" # DO NOT INCLUDE .npz extension here...
 
-save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples_conditional" # DO NOT INCLUDE .npz extension here...
-
-strategies = ['special', 'h2t']
+strategies = ['special_bis_thioether', 'special_amide']
 #['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
 
 with_dlogp = False
 ### ^^^ -----===== THINGS TO CHANGE =====----- ^^^
+
+if save_dir[-1] != "/": # probably unecessary.
+    save_dir += "/" # probably unecessary.
 
 # Extract the directory part from the template
 save_dir_path = os.path.dirname(save_dir)
@@ -212,7 +212,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 20 #10 #45 #400
+n_samples = 50 #10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))

@@ -18,12 +18,12 @@ pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
 filename = "N-Cap2_bb_all_sc_adj.pth" # model to be used for inference
 PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/{filename}" # path to model dir
 
-save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-9-2025/"
+save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-10-2025/"
 
 if save_dir[-1] != "/": # DON'T CHANGE
     save_dir += "/" # DON'T CHANGE
 
-save_data_name = "N-Cap2_bb_all_sc_adj_jan_9_samples_conditional" # DO NOT INCLUDE .npz extension here...
+save_data_name = "N-Cap2_bb_all_sc_adj_jan_10_samples_conditional" # DO NOT INCLUDE .npz extension here...
 
 strategies = ['special', 'disulfide']
 #['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']

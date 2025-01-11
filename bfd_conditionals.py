@@ -363,7 +363,8 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                     (terminal_residues[1].index, terminal_residues[0].index)
                 ))
 
-        if 'special' in self._strategies:
+        sbt_string = 'special_bis_thioether'
+        if sbt_string in self._strategies:
             # Identify residues and atoms associated with the BEN linker
             ben_residues = [r for r in residue_list if r.name == "BEN"]
             if ben_residues:
@@ -394,12 +395,39 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
 
             # Append strategy and residue index to the list
             strategies_indices_pair_list.append((
-                "special_bis_thioether",
+                sbt_string,
                 (ben.index,)
             ))
+             
+        sp_a_str = "special_amide"
+        if sp_a_str in self._strategies:
+            # Get the specific residues for the fail-case amide bond
+            cys_residue = next(r for r in residue_list if r.name == "CYS" and r.index == 1)
+            ala_residue = next(r for r in residue_list if r.name == "ALA" and r.index == 14)
 
+            # Extract atom indices
+            c1_index = get_atom_indices(cys_residue, ["C"])[0]  # Carbonyl carbon of CYS
+            ca1_index = get_atom_indices(cys_residue, ["CA"])[0]  # Alpha carbon of CYS
+            n2_index = get_atom_indices(ala_residue, ["N"])[0]  # Amide nitrogen of ALA
+            h2_index = get_atom_indices(ala_residue, ["H"])[0]  # Hydrogen of the amide nitrogen of ALA
 
-        # Add more strategies similarly...
+            # Add the loss function for this special amide bond
+            loss_functions.append(
+                lambda pos, 
+                c1=c1_index, ca1=ca1_index, 
+                n2=n2_index, h2=h2_index: h2t_amide_loss(
+                    pos[:, c1, :].squeeze(),  # Carbonyl carbon position
+                    pos[:, ca1, :].squeeze(),  # Alpha carbon position
+                    pos[:, n2, :].squeeze(),  # Amide nitrogen position
+                    pos[:, h2, :].squeeze(),  # Hydrogen position
+                )
+            )
+
+            # Append strategy and residue indices
+            strategies_indices_pair_list.append((
+                sp_a_str,
+                (cys_residue.index, ala_residue.index),
+            ))
 
         # Closure for loss computation
         def cyclization_loss(positions): # this will be very fast, regardless, compared to the many
