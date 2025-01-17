@@ -163,8 +163,7 @@ def motif_absolute(*argv, target_structure): ### TODO: IMPLEMENT THIS
     
     pass
 
-def soft_min(inputs, alpha=-10): ### ahh... inputs seems to be an issue... wrong shape. its of shape (n_batch, )
-    # but not of shape (n_batch, n_loss)
+def soft_min(inputs, alpha=-3):
     """
     Compute soft minimum across batches; as alpha -> -inf, becomes a hard minimum. As alpha -> 0, becomes
     a simple average. as alpha -> +inf, becomes a hard maximum

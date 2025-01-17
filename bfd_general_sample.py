@@ -20,16 +20,17 @@ PATH_last = f"/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/{filename}" # 
 
 save_dir = "/home/bfd21/rds/hpc-work/tbg/result_data/Jan-10-2025/"
 
-if save_dir[-1] != "/": # DON'T CHANGE
-    save_dir += "/" # DON'T CHANGE
-
-save_data_name = "N-Cap2_bb_all_sc_adj_jan_10_samples_conditional" # DO NOT INCLUDE .npz extension here...
+conditional = False
+save_data_name = f"N-Cap2_bb_all_sc_adj_jan_10_samples_conditional_{conditional}" # DO NOT INCLUDE .npz extension here...
 
 strategies = ['special', 'disulfide']
 #['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
 
 with_dlogp = False
 ### ^^^ -----===== THINGS TO CHANGE =====----- ^^^
+
+if save_dir[-1] != "/": # Probably unneeded
+    save_dir += "/" # Probably unneeded
 
 # Extract the directory part from the template
 save_dir_path = os.path.dirname(save_dir)
@@ -157,6 +158,24 @@ net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO W
     agg="sum",
 )
 
+if not conditional:
+    net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent( # DYNAMICS MODEL TO BE USED... YOU CAN CHANGE THIS.
+        pdb_file=pdb_path,
+        n_particles=n_particles,
+        device="cuda",
+        n_dimension=dim // n_particles,
+        h_initial=h_initial,
+        hidden_nf=64,
+        act_fn=torch.nn.SiLU(),
+        n_layers=5,
+        recurrent=True,
+        tanh=True,
+        attention=True,
+        condition_time=True,
+        mode="egnn_dynamics",
+        agg="sum",
+    )
+
 ### TODO:
 ### Size of dt (& hence number of steps) seems to be determined by the error of the system... Try to verify this & see if you can fix
 ### the error below!!!
@@ -206,7 +225,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 20 #10 #45 #400
+n_samples = 2 #20 #10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))

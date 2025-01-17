@@ -1,17 +1,93 @@
 ### Imports ###
 import torch
 from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, distance_loss
+from abc import ABC, abstractmethod
+
 
 ### This file contains all of the function definitions chemically relevant to loss cyclization.
 
+def calc_total_loss(distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor, 
+                        use_bond_distances: bool, use_bond_angles: bool, use_dihedrals: bool, weights: dict):
+    
+        # weights encodes how much of each type of loss to weight.
+        total_loss = torch.zeros_like(distance_losses)
+
+        if use_bond_distances:
+            total_loss += distance_losses * weights['bond_distances']
+        
+        if use_bond_angles:
+            total_loss += bond_angle_losses * weights['bond_angles']
+        
+        if use_dihedrals:
+            total_loss += dihedral_losses * weights['dihedral_angles']
+
+        return total_loss
+
+class BaseLoss(ABC):
+    '''
+    A loss for organizing the individual chemical losses that are used in this project.
+    '''
+
+    # defining required properties vvv
+    @property
+    @abstractmethod
+    def weights(self) -> dict:
+        # should be dict[str, float]
+        pass
+
+    @property
+    @abstractmethod
+    def use_bond_lengths(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def use_bond_angles(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def use_dihedrals(self) -> bool:
+        pass
+    # defining required properties ^^^
+
+    @abstractmethod
+    def __call__(self, positions):
+        pass
+
+    def calc_total_loss(self, distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor):
+        # weights encodes how much of each type of loss to weight.
+        total_loss = torch.zeros_like(distance_losses)
+
+        if self.use_bond_distances:
+            total_loss += distance_losses * self.weights['bond_distances']
+        
+        if self.use_bond_angles:
+            total_loss += bond_angle_losses * self.weights['bond_angles']
+        
+        if self.use_dihedrals:
+            total_loss += dihedral_losses * self.weights['dihedral_angles']
+
+        return total_loss
+
+
 ### Defining the chemically specific losses
-def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb, 
+def disulfide_loss(cys1_s: torch.Tensor, cys1_cb: torch.Tensor, 
+                   cys2_s: torch.Tensor, cys2_cb: torch.Tensor, 
+                   weights: dict,
+
                    target_distance=2.05, # Typical bond length in Å (?)
                    target_bond_angle=torch.deg2rad(torch.tensor(102.5)), # Typical bond angles in radians (?)
                    target_dihedral_angle=torch.deg2rad(torch.tensor(90.0)), # Typical bond angles in radians (?)
+                   
                    distance_tolerance=0.2, 
-                   angle_tolerance=0.1, 
-                   steepness=1.0): #TODO: implement steepness
+                   angle_tolerance=0.1,
+                   steepness=1.0,
+
+                   use_bond_distances: bool= True, # whether or not bond distances are added to the final loss
+                   use_bond_angles: bool= True, # whether or not bond angles are added to the final loss
+                   use_dihedrals: bool= True, # whether or not dihedral losses are added to the final loss
+                   ): #TODO: implement steepness
     """
     Compute the disulfide loss for a specific pair of cysteine residues.
 
@@ -35,8 +111,13 @@ def disulfide_loss(cys1_s, cys1_cb, cys2_s, cys2_cb,
     angle2_loss = bond_angle_loss(cys1_s, cys2_s, cys2_cb, target_bond_angle, angle_tolerance)  # Shape: (batch_size)
     dihedral_loss = dihedral_angle_loss(cys1_cb, cys1_s, cys2_s, cys2_cb, target_dihedral_angle, angle_tolerance)  # Shape: (batch_size)
 
-    # Combine all losses
-    total_loss = dist_loss + angle1_loss + angle2_loss + dihedral_loss  # Shape: (batch_size)
+    total_loss = calc_total_loss(distance_losses= dist_loss, 
+                                 bond_angle_losses= angle1_loss + angle2_loss, 
+                                 dihedral_losses= dihedral_loss, 
+                                 use_bond_distances= use_bond_distances,
+                                 use_bond_angles= use_bond_angles,
+                                 use_dihedrals= use_dihedrals,
+                                 weights= weights)
 
     return total_loss
 
@@ -44,9 +125,15 @@ def h2t_amide_loss(c1, ca1, n2, h2,
                    target_distance=1.33,  # Typical C-N bond length in Å
                    target_bond_angle=torch.deg2rad(torch.tensor(120.0)),  # Typical bond angles in radians
                    target_dihedral_angle=torch.deg2rad(torch.tensor(0.0)),  # Planarity implies dihedral angle ~0
+                   
                    distance_tolerance=0.1,
                    angle_tolerance=0.1, 
-                   steepness=1.0):  # Controls steepness of penalties
+                   steepness=1.0,
+
+                   use_bond_distances: bool = True, # whether or not bond distances are added to the final loss
+                   use_bond_angles: bool=True, # whether or not bond angles are added to the final loss
+                   use_dihedrals: bool=True, # whether or not dihedral losses are added to the final loss
+                   ):  # Controls steepness of penalties
     """
     Compute the loss for forming an amide bond between the head and tail residues.
 

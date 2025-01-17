@@ -17,7 +17,7 @@ from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic, EGNN_dynamic
 from bfd_conditionals import cyclization_loss_handler, gaussian_w_t
 from bfd_constants import *
 
-### vvv -----===== THINGS TO CHANGE =====----- vvv
+### vvv -----===== THINGS TO CHANGE =====----- vvv Ideally want to add simple true false conditional switch
 pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
 pdb_path_sanity = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system_sanity.pdb"
 
@@ -31,6 +31,7 @@ save_data_name = "N-Cap2_bb_all_sc_adj_jan_11_samples_conditional" # DO NOT INCL
 strategies = ['special_bis_thioether', 'special_amide']
 #['disulfide', 'amide', 'side_chain_amide', 'thioether', 'ester', 'hydrazone', 'h2t']
 
+conditional = False ### try generating conditional samples and seeing what happens
 with_dlogp = False
 ### ^^^ -----===== THINGS TO CHANGE =====----- ^^^
 
@@ -163,6 +164,24 @@ net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic( ### CHANGE MODEL TO W
     agg="sum",
 )
 
+if not conditional:
+    net_dynamics=EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
+        pdb_file=pdb_path,
+        n_particles=n_particles,
+        device="cuda",
+        n_dimension=dim // n_particles,
+        h_initial=h_initial,
+        hidden_nf=64,
+        act_fn=torch.nn.SiLU(),
+        n_layers=5,
+        recurrent=True,
+        tanh=True,
+        attention=True,
+        condition_time=True,
+        mode="egnn_dynamics",
+        agg="sum",
+        )
+
 ### TODO:
 ### Size of dt (& hence number of steps) seems to be determined by the error of the system... Try to verify this & see if you can fix
 ### the error below!!!
@@ -212,7 +231,7 @@ flow._kwargs = {}
 checkpoint = torch.load(PATH_last)
 flow.load_state_dict(checkpoint["model_state_dict"])
 
-n_samples = 50 #10 #45 #400
+n_samples = 2 #50 #10 #45 #400
 n_sample_batches = 2 #500
 latent_np = np.empty(shape=(0))
 samples_np = np.empty(shape=(0))
@@ -220,6 +239,7 @@ dlogp_np = np.empty(shape=(0))
 print(f"""
       -------======= START SAMPLING WITH {filename} =======-------
       """)
+loss_selections_list = []
 
 for i in tqdm.tqdm(range(n_sample_batches)):
     with torch.no_grad():
@@ -238,6 +258,9 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     latent_np = latent_np.reshape(-1, dim)
     samples_np = samples_np.reshape(-1, dim)
 
+    loss_selections = loss_handler.get_smallest_loss(torch.tensor(samples_np.reshape(-1, n_particles, n_dimensions)))
+    loss_selections_list.append(loss_selections)
+
     np.savez(
         f"{save_dir}{save_data_name}_batch-{i}.npz",
         latent_np=latent_np,
@@ -246,13 +269,11 @@ for i in tqdm.tqdm(range(n_sample_batches)):
     )
     print(f'saved batch #{i}')
 
+    loss_handler_save_path = f"{save_dir}{save_data_name}_selected_losses_{i}.pkl"
 
-# Define the file path to save the loss_handler
-loss_handler_save_path = f"{save_dir}{save_data_name}_loss_handler.pkl"
-
-# Save the loss_handler using pickle
-with open(loss_handler_save_path, "wb") as f:
-    pickle.dump(loss_handler, f)
+    # Save the loss_handler using pickle
+    with open(loss_handler_save_path, "wb") as f:
+        pickle.dump(loss_selections_list, f)
 
 print(f"loss_handler saved to {loss_handler_save_path}")
 
