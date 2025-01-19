@@ -1,5 +1,6 @@
 ### Imports ###
 from typing import Dict
+from math import pi
 
 import torch
 from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, distance_loss
@@ -17,11 +18,16 @@ class BaseLoss(ABC):
     A loss for organizing the individual chemical losses that are used in this project.
     '''
 
-    def __init__(self, weights: Dict[str, float], indexes: list[int], method: str, 
-                 use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool):
+    def __init__(self,  method: str, indexes: list[int], weights: Dict[str, float], 
+                 offsets: Dict[str, float], use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool,
+                 
+                 bond_length_tolerance: float = None, bond_angle_tolerance: float = None, 
+                 dihedral_tolerance: float = None,
+                 ):
         
-        self._weights = weights
         self._indexes = indexes
+        self._weights = weights
+        self._offsets = offsets
 
         assert method is not None, 'method must have a value'
         self._method = method
@@ -29,21 +35,41 @@ class BaseLoss(ABC):
         self._use_bond_lengths = use_bond_lengths
         self._use_bond_angles = use_bond_angles
         self._use_dihedrals = use_dihedrals
+
+        if use_bond_lengths:
+            assert bond_length_tolerance is not None, 'bond_length_tolerance cannot be None if use_bond_lengths is not None'
+        if use_bond_angles:
+            assert bond_angle_tolerance is not None, 'bond_angle_tolerance cannot be None if use_bond_angles is not None'
+            assert 0.0 <= bond_angle_tolerance < pi, 'bond_angle_tolerance must be in (0, pi]'
+        if use_dihedrals:
+            assert dihedral_tolerance is not None, 'dihedral_tolerance cannot be None if use_dihedrals is not None'
+            assert 0.0 <= dihedral_tolerance < pi, 'dihedral_tolerance must be in (0, pi]'
         
+        self._bond_length_tolerance = bond_length_tolerance
+        self._bond_angle_tolerance = bond_angle_tolerance
+        self._dihedral_tolerance = dihedral_tolerance
+
     # getters vvv
-    @property
-    def weights(self) -> Dict[str, float]:
-        '''
-        the weights assigned to the dihedral, bond angle, and bond length components of the chemical loss.
-        '''
-        return self._weights
-    
     @property
     def indexes(self) -> list[int]:
         '''
         the indexes of the total atom positions used for the loss calculation.
         '''
         return self._indexes
+    
+    @property
+    def weights(self) -> Dict[str, float]:
+        '''
+        the weights assigned to the bond length, bond angle and dihedral angle components of the chemical loss
+        '''
+        return self._weights
+    
+    @property
+    def offsets(self) -> Dict[str, float]:
+        '''
+        the offsets assigned to the bond length, bond angle and dihedral angle components of the chemical loss
+        '''
+        return self._offsets
     
     @property
     def method(self) -> str:
@@ -74,6 +100,27 @@ class BaseLoss(ABC):
         whether or not the chemical loss should consider dihedral angles.
         '''
         return self._use_dihedrals
+    
+    @property
+    def bond_length_tolerance(self) -> float:
+        '''
+        bond length tolerance (Å)
+        '''
+        return self._bond_length_tolerance
+    
+    @property
+    def bond_angle_tolerance(self) -> float:
+        '''
+        bond angle tolerance (rads)
+        '''
+        return self._bond_angle_tolerance
+    
+    @property
+    def dihedral_tolerance(self) -> float:
+        '''
+        dihedral tolerance (rads)
+        '''
+        return self._dihedral_tolerance
     # getters ^^^
 
     def calc_total_loss(self, distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor):
@@ -83,13 +130,13 @@ class BaseLoss(ABC):
         total_loss = torch.zeros_like(distance_losses)
 
         if self.use_bond_lengths:
-            total_loss += distance_losses * self.weights['bond_distances']
+            total_loss += distance_losses * self.weights['bond_lenghts'] + self.offsets['bond_lengths']
         
         if self.use_bond_angles:
-            total_loss += bond_angle_losses * self.weights['bond_angles']
+            total_loss += bond_angle_losses * self.weights['bond_angles'] + self.offsets['bond_angles']
         
         if self.use_dihedrals:
-            total_loss += dihedral_losses * self.weights['dihedral_angles']
+            total_loss += dihedral_losses * self.weights['dihedral_angles'] + self.offsets['dihedral_angles']
 
         return total_loss
     
@@ -113,6 +160,22 @@ class DisulfideLoss(BaseLoss):
     '''
     Loss of cyclization of disulfide bond between 2 cystines.
     '''
+    def __init__(self, method: str, indexes: list[int], 
+                 
+                 # defaults below #
+                 weights: Dict[str, float] = {'bond_lengths': 1, 'bond_angles': 1, 'dihedral_angles': 1},
+                 offsets: Dict[str, float] = {'bond_lengths': 0, 'bond_angles': 0, 'dihedral_angles': 0},
+                 use_bond_lengths: bool = True, use_bond_angles: bool = True, use_dihedrals: bool = True,
+                 bond_length_tolerance: float = 0.2, bond_angle_tolerance: float = 0.1, dihedral_tolerance: float = 0.1,
+                 ):
+        
+        super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
+                         use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
+                         use_dihedrals= use_dihedrals,
+                         
+                         bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
+                         dihedral_tolerance= dihedral_tolerance,
+                         )
 
     def __call__(self, positions: torch.Tensor):
         pos = positions
@@ -122,9 +185,9 @@ class DisulfideLoss(BaseLoss):
         target_dihedral = torch.deg2rad(torch.tensor(90.0))
 
         # may want to make these attributes of the outer loss object.
-        length_tolerance= 0.2
-        bond_angle_tolerance= 0.1
-        dihedral_tolerance= 0.1
+        length_tolerance= self.bond_length_tolerance
+        bond_angle_tolerance= self.bond_angle_tolerance
+        dihedral_tolerance= self.dihedral_tolerance
         
         s1_atom = pos[:, sulfur_index_1, :].squeeze()
         s2_atom = pos[:, sulfur_index_2, :].squeeze()
