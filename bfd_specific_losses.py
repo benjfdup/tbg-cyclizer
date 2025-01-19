@@ -1,10 +1,157 @@
 ### Imports ###
+from typing import Dict
+
 import torch
 from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, distance_loss
 from abc import ABC, abstractmethod
 
-
 ### This file contains all of the function definitions chemically relevant to loss cyclization.
+
+######################################################################
+# This class is a blueprint for all possible chemical losses.
+# These losses are then considered in || by the loss handler.
+######################################################################
+
+class BaseLoss(ABC):
+    '''
+    A loss for organizing the individual chemical losses that are used in this project.
+    '''
+
+    def __init__(self, weights: Dict[str, float], indexes: list[int], method: str, 
+                 use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool):
+        
+        self._weights = weights
+        self._indexes = indexes
+
+        assert method is not None, 'method must have a value'
+        self._method = method
+
+        self._use_bond_lengths = use_bond_lengths
+        self._use_bond_angles = use_bond_angles
+        self._use_dihedrals = use_dihedrals
+        
+    # getters vvv
+    @property
+    def weights(self) -> Dict[str, float]:
+        '''
+        the weights assigned to the dihedral, bond angle, and bond length components of the chemical loss.
+        '''
+        return self._weights
+    
+    @property
+    def indexes(self) -> list[int]:
+        '''
+        the indexes of the total atom positions used for the loss calculation.
+        '''
+        return self._indexes
+    
+    @property
+    def method(self) -> str:
+        '''
+        The method of cyclization that this loss represents.
+        The method string should be ideally very descriptive, and should encode both the chemistry used
+        and the indexes (and maybe even types) of the amino acids used for it.
+        '''
+        return self._method
+
+    @property
+    def use_bond_lengths(self) -> bool:
+        '''
+        whether or not the chemical loss should consider bond lengths.
+        '''
+        return self._indexes
+
+    @property
+    def use_bond_angles(self) -> bool:
+        '''
+        whether or not the chemical loss should consider bond angles.
+        '''
+        return self._use_bond_angles
+
+    @property
+    def use_dihedrals(self) -> bool:
+        '''
+        whether or not the chemical loss should consider dihedral angles.
+        '''
+        return self._use_dihedrals
+    # getters ^^^
+
+    def calc_total_loss(self, distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor):
+        '''
+        calculates and returns the final total chemical loss.
+        '''
+        total_loss = torch.zeros_like(distance_losses)
+
+        if self.use_bond_lengths:
+            total_loss += distance_losses * self.weights['bond_distances']
+        
+        if self.use_bond_angles:
+            total_loss += bond_angle_losses * self.weights['bond_angles']
+        
+        if self.use_dihedrals:
+            total_loss += dihedral_losses * self.weights['dihedral_angles']
+
+        return total_loss
+    
+    @abstractmethod
+    def __call__(self, positions: torch.Tensor):
+        '''
+        Evaluates the loss given all atoms positions of the chemically relevant atoms.
+        Relevant atom indexes are stored at self.indexes.
+        Positions should be of shape (batch_size, n_atoms, 3).
+        '''
+        pass
+
+### TODO: verify these with Alex & Google.
+
+######################################################################
+# Below are the specific implementations of individual chemical losses
+# for use in the cyclic loss handler.
+######################################################################
+
+class DisulfideLoss(BaseLoss):
+    '''
+    Loss of cyclization of disulfide bond between 2 cystines.
+    '''
+
+    def __call__(self, positions: torch.Tensor):
+        pos = positions
+        sulfur_index_1, sulfur_index_2, beta_index_1, beta_index_2 = self._indexes
+        target_distance=2.05, # Typical bond length in Å (?)
+        target_bond_angle = torch.deg2rad(torch.tensor(102.5))
+        target_dihedral = torch.deg2rad(torch.tensor(90.0))
+
+        # may want to make these attributes of the outer loss object.
+        length_tolerance= 0.2
+        bond_angle_tolerance= 0.1
+        dihedral_tolerance= 0.1
+        
+        s1_atom = pos[:, sulfur_index_1, :].squeeze()
+        s2_atom = pos[:, sulfur_index_2, :].squeeze()
+        b1_atom = pos[:, beta_index_1, :].squeeze()
+        b2_atom = pos[:, beta_index_2, :].squeeze()
+
+        # Compute individual losses
+        dist_loss = 0
+        angle1_loss = 0
+        angle2_loss = 0
+        dihedral_loss = 0
+
+        if self.use_bond_lengths:
+            dist_loss += distance_loss(s1_atom, s2_atom, target_distance, length_tolerance)  # Shape: (batch_size)
+        if self.use_bond_angles:
+            angle1_loss += bond_angle_loss(b1_atom, s1_atom, s2_atom, target_bond_angle, bond_angle_tolerance)  # Shape: (batch_size)
+            angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # Shape: (batch_size)
+        if self.use_dihedrals:
+            dihedral_loss = dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, target_dihedral, dihedral_tolerance)  # Shape: (batch_size)
+    
+        total_loss = self.calc_total_loss(distance_losses=dist_loss, 
+                                          bond_angle_losses=angle1_loss + angle2_loss, 
+                                          dihedral_losses= dihedral_loss)
+
+        return total_loss
+
+
 
 def calc_total_loss(distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor, 
                         use_bond_distances: bool, use_bond_angles: bool, use_dihedrals: bool, weights: dict):
@@ -20,53 +167,6 @@ def calc_total_loss(distance_losses: torch.tensor, bond_angle_losses: torch.tens
         
         if use_dihedrals:
             total_loss += dihedral_losses * weights['dihedral_angles']
-
-        return total_loss
-
-class BaseLoss(ABC):
-    '''
-    A loss for organizing the individual chemical losses that are used in this project.
-    '''
-
-    # defining required properties vvv
-    @property
-    @abstractmethod
-    def weights(self) -> dict:
-        # should be dict[str, float]
-        pass
-
-    @property
-    @abstractmethod
-    def use_bond_lengths(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def use_bond_angles(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def use_dihedrals(self) -> bool:
-        pass
-    # defining required properties ^^^
-
-    @abstractmethod
-    def __call__(self, positions):
-        pass
-
-    def calc_total_loss(self, distance_losses: torch.tensor, bond_angle_losses: torch.tensor, dihedral_losses: torch.tensor):
-        # weights encodes how much of each type of loss to weight.
-        total_loss = torch.zeros_like(distance_losses)
-
-        if self.use_bond_distances:
-            total_loss += distance_losses * self.weights['bond_distances']
-        
-        if self.use_bond_angles:
-            total_loss += bond_angle_losses * self.weights['bond_angles']
-        
-        if self.use_dihedrals:
-            total_loss += dihedral_losses * self.weights['dihedral_angles']
 
         return total_loss
 

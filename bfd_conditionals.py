@@ -13,7 +13,8 @@ from bfd_specific_losses import *
 ### This file contains all of the code and organizational functions necessary to easily handle loss implementation.
 # TODO: need to add devices to the default tensor values (which are used when no other value is specified)
 
-class w_t():
+
+class w_t(): # make this an abstract class
     '''
     A class to handle loss function coefficients for cyclic conditioning.
 
@@ -127,18 +128,6 @@ class w_t():
 
         return cls(w_t = w_t, warn_user = False)
 
-def precompute_atom_indices(residues, atom_names):
-    """
-    Precomputes atom indices for specified atom names across residues.
-    """
-    indices = {}
-    for residue in residues:
-        for atom_name in atom_names:
-            atom = next((a for a in residue.atoms if a.name == atom_name), None)
-            if atom:
-                indices[(residue.index, atom_name)] = atom.index
-    return indices
-
 ### Class to handle cyclic loss condition
 class cyclization_loss_handler(): #TODO: implement steepnesses
     def __init__(self, pdb_path,
@@ -146,8 +135,6 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
                  device = None,
                  strategies=['disulfide', 'amide', 'side_chain_amide', 
                              'thioether', 'ester', 'hydrazone', 'h2t'],
-                 bond_angles = True,
-                 dihedrals = True,
                  ):
         self._pdb_path = pdb_path
         self._alpha = alpha
@@ -179,6 +166,20 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         return self._pdb_path
     # getters ^^^
 
+    @staticmethod
+    def precompute_atom_indices(residues, atom_names):
+        """
+        Precomputes atom indices for specified atom names across residues.
+        """
+        indices = {}
+        for residue in residues:
+            for atom_name in atom_names:
+                atom = next((a for a in residue.atoms if a.name == atom_name), None)
+                if atom:
+                    indices[(residue.index, atom_name)] = atom.index
+        return indices
+
+
     def _initialize_loss(self):
         """
         Internal method to initialize the cyclization loss function for a peptide.
@@ -191,7 +192,7 @@ class cyclization_loss_handler(): #TODO: implement steepnesses
         bonding_atoms = ["SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD",
                          'S1', 'S2', 'C1', 'C7',] # consider expanding this? # bottom row is just for special ben case.
 
-        all_atom_indices = precompute_atom_indices(residue_list, bonding_atoms)
+        all_atom_indices = self.precompute_atom_indices(residue_list, bonding_atoms)
 
         def get_atom_indices(residue, atom_names): # why is this asking for something that doesn't exist...
             """

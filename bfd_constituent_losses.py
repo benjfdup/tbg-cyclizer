@@ -1,9 +1,7 @@
-
+# batch-friendly loss building blocks
 import torch
 
-# batch-friendly loss building blocks
-
-def sq_distance(a1, a2):
+def sq_distance(a1: torch.Tensor, a2: torch.Tensor) -> torch.Tensor:
     """
     Compute squared distances for batches of points.
 
@@ -18,7 +16,7 @@ def sq_distance(a1, a2):
     
     return result
 
-def bond_angle(a1, a2, a3):
+def bond_angle(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor) -> torch.Tensor:
     """
     Compute bond angles for batches of points.
 
@@ -44,7 +42,8 @@ def bond_angle(a1, a2, a3):
 
     return result
 
-def dihedral_angle(a1, a2, a3, a4):
+def dihedral_angle(a1: torch.Tensor, a2: torch.Tensor, 
+                   a3: torch.Tensor, a4: torch.Tensor) -> torch.Tensor:
     """
     Compute dihedral angles for batches of points.
 
@@ -80,7 +79,8 @@ def dihedral_angle(a1, a2, a3, a4):
 
     return result
 
-def distance_loss(a1, a2, target_distance, tolerance=0.0):
+def distance_loss(a1: torch.Tensor, a2: torch.Tensor, 
+                  target_distance: float, tolerance: float=0.0) -> torch.Tensor:
     """
     Compute distance losses with optional tolerance for batches.
 
@@ -103,7 +103,8 @@ def distance_loss(a1, a2, target_distance, tolerance=0.0):
 
     return result
 
-def bond_angle_loss(a1, a2, a3, target_angle, tolerance=0.0):
+def bond_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, 
+                    target_angle: float, tolerance: float= 0.0) -> torch.Tensor:
     """
     Compute bond angle losses with tolerance for batches.
 
@@ -125,14 +126,15 @@ def bond_angle_loss(a1, a2, a3, target_angle, tolerance=0.0):
 
     return result
 
-def dihedral_angle_loss(a1, a2, a3, a4, target_angle, tolerance=0.0):
+def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4: torch.Tensor, 
+                        target_angle: float, tolerance: float= 0.0) -> torch.Tensor:
     """
     Compute dihedral angle losses with tolerance for batches.
 
     Parameters:
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
     target_angle (float): Target dihedral angle in radians.
-    tolerance (float): No-penalty range around the target angle.
+    tolerance (float): No-penalty range around the target angle in radians.
 
     Returns:
     torch.Tensor: Losses of shape (batch_size).
@@ -163,7 +165,7 @@ def motif_absolute(*argv, target_structure): ### TODO: IMPLEMENT THIS
     
     pass
 
-def soft_min(inputs, alpha=-3):
+def soft_min(inputs: torch.Tensor, alpha=-3) -> torch.Tensor:
     """
     Compute soft minimum across batches; as alpha -> -inf, becomes a hard minimum. As alpha -> 0, becomes
     a simple average. as alpha -> +inf, becomes a hard maximum
