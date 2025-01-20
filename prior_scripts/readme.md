@@ -1,0 +1,1 @@
+This folder holds previous sampling/training scripts. Wont be included in final pub

@@ -2,8 +2,9 @@
 import warnings
 import math
 from typing import Callable
-
+from abc import ABC, abstractmethod
 import torch
+
 import mdtraj as md
 
 from bfd_constituent_losses import soft_min
@@ -12,7 +13,6 @@ from bfd_specific_losses import *
 
 ### This file contains all of the code and organizational functions necessary to easily handle loss implementation.
 # TODO: need to add devices to the default tensor values (which are used when no other value is specified)
-
 
 class w_t(): # make this an abstract class
     '''

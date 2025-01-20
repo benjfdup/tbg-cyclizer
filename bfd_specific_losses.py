@@ -6,14 +6,12 @@ import torch
 from bfd_constituent_losses import bond_angle_loss, dihedral_angle_loss, distance_loss
 from abc import ABC, abstractmethod
 
-### This file contains all of the function definitions chemically relevant to loss cyclization.
-
 ######################################################################
 # This class is a blueprint for all possible chemical losses.
 # These losses are then considered in || by the loss handler.
 ######################################################################
 
-class BaseLoss(ABC):
+class ChemicalLoss(ABC):
     '''
     A loss for organizing the individual chemical losses that are used in this project.
     '''
@@ -156,7 +154,7 @@ class BaseLoss(ABC):
 # for use in the cyclic loss handler.
 ######################################################################
 
-class DisulfideLoss(BaseLoss):
+class DisulfideLoss(ChemicalLoss):
     '''
     Loss of cyclization of disulfide bond between 2 cystines.
     '''
