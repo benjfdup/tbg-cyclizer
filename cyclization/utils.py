@@ -1,5 +1,4 @@
 # batch-friendly loss building blocks
-
 import torch
 
 def sq_distance(a1: torch.Tensor, a2: torch.Tensor) -> torch.Tensor:
@@ -86,12 +85,12 @@ def distance_loss(a1: torch.Tensor, a2: torch.Tensor,
     Compute distance losses with optional tolerance for batches.
 
     Parameters:
-    a1, a2 (torch.Tensor): Tensors of shape (batch_size, 3).
+    a1, a2 (torch.Tensor): Tensors of shape [batch_size, 3].
     target_distance (float): Target bond distance.
     tolerance (float): No-penalty range around the target distance.
 
     Returns:
-    torch.Tensor: Losses of shape (batch_size, ).
+    torch.Tensor: Losses of shape [batch_size, ].
     """
     sq_dist = sq_distance(a1, a2)
     dist = torch.sqrt(sq_dist)
@@ -185,3 +184,10 @@ def soft_min(inputs: torch.Tensor, alpha=-3) -> torch.Tensor:
     result = torch.sum(inputs * exps, dim=-1) / torch.sum(exps, dim=-1)
     
     return result
+
+# below is very unrelated, but not sure where else to include this
+def inherit_docstring(parent_method):
+    def decorator(method):
+        method.__doc__ = parent_method.__doc__
+        return method
+    return decorator
