@@ -1,5 +1,6 @@
 # batch-friendly loss building blocks
 import torch
+import mdtraj as md
 
 def sq_distance(a1: torch.Tensor, a2: torch.Tensor) -> torch.Tensor:
     """
@@ -191,3 +192,103 @@ def inherit_docstring(parent_method):
         method.__doc__ = parent_method.__doc__
         return method
     return decorator
+
+# generates edges per the below scheme
+def generate_bb_all_sc_adjacent_from_pdb(pdb_file: str):
+    """
+    Generates a custom adjacency matrix based on protein backbone and side-chain rules,
+    using atom and residue information from an mdtraj topology.
+
+    Backbone atoms are fully connected, while side-chain atoms are connected
+    within their amino acid, to side-chains of adjacent amino acids, and to backbone
+    atoms of their and adjacent amino acids.
+
+    Args:
+        pdb_file (str): Path to the .pdb file.
+
+    Returns:
+        torch.Tensor: Sparse adjacency matrix (shape [2, num_edges]).
+    """
+
+    # need to manually review the logic here...
+
+    # Load structure using mdtraj
+    traj = md.load(pdb_file)
+    topology = traj.topology
+
+    # Identify backbone and side-chain atoms
+    backbone_atoms = [atom.index for atom in topology.atoms if atom.is_backbone]
+
+    # Get residue indices
+    amino_acid_indices = []
+    for residue in topology.residues:
+        start = residue.atom(0).index
+        end = residue.atom(-1).index
+        amino_acid_indices.append((start, end))
+
+    edges = []
+
+    # Backbone atoms are fully connected
+    for i in backbone_atoms: # could likely speed this up... but probably doesn't matter.
+        for j in backbone_atoms:
+            if i != j:
+                edges.append((i, j))
+
+    # Side-chain atoms connect within the amino acid, to adjacent amino acids, and to backbone atoms
+    for idx, (start, end) in enumerate(amino_acid_indices):
+        # Separate backbone and side-chain atoms within this amino acid
+        residue_atoms = list(range(start, end + 1))
+        residue_backbone = [atom for atom in residue_atoms if atom in backbone_atoms]
+        residue_sidechain = [atom for atom in residue_atoms if atom not in backbone_atoms]
+
+        # Connect side-chain atoms within the amino acid
+        for i in residue_sidechain:
+            for j in residue_sidechain:
+                if i != j:
+                    edges.append((i, j))
+
+        # Connect side-chain atoms to backbone atoms in the same amino acid
+        for i in residue_sidechain:
+            for j in residue_backbone:
+                edges.append((i, j))
+                edges.append((j, i))  # Ensure bidirectional connectivity
+
+        # Connect side-chain atoms to side-chain atoms and backbone atoms in adjacent amino acids
+        if idx > 0:  # Connect to the previous residue
+            prev_start, prev_end = amino_acid_indices[idx - 1]
+            prev_atoms = list(range(prev_start, prev_end + 1))
+            prev_backbone = [atom for atom in prev_atoms if atom in backbone_atoms]
+            prev_sidechain = [atom for atom in prev_atoms if atom not in backbone_atoms]
+
+            for i in residue_sidechain:
+                # Connect to side-chains of the previous residue
+                for j in prev_sidechain:
+                    edges.append((i, j))
+                    edges.append((j, i))  # Bidirectional
+
+                # Connect to backbone of the previous residue
+                for j in prev_backbone:
+                    edges.append((i, j))
+                    edges.append((j, i))  # Bidirectional
+
+        if idx < len(amino_acid_indices) - 1:  # Connect to the next residue
+            next_start, next_end = amino_acid_indices[idx + 1]
+            next_atoms = list(range(next_start, next_end + 1))
+            next_backbone = [atom for atom in next_atoms if atom in backbone_atoms]
+            next_sidechain = [atom for atom in next_atoms if atom not in backbone_atoms]
+
+            for i in residue_sidechain:
+                # Connect to side-chains of the next residue
+                for j in next_sidechain:
+                    edges.append((i, j))
+                    edges.append((j, i))  # Bidirectional
+
+                # Connect to backbone of the next residue
+                for j in next_backbone:
+                    edges.append((i, j))
+                    edges.append((j, i))  # Bidirectional
+
+    # Convert to tensor
+    edges = torch.tensor(edges, dtype=torch.long).T  # Shape: [2, num_edges]
+    #print('DONE generating adjacency matrix')
+    return edges

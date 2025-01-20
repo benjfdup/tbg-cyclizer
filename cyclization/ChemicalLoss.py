@@ -24,6 +24,8 @@ class ChemicalLoss(ABC):
                  
                  bond_length_tolerance: float = None, bond_angle_tolerance: float = None, 
                  dihedral_tolerance: float = None,
+
+                 device: torch.device = None
                  ):
         
         self._indexes = indexes
@@ -49,6 +51,8 @@ class ChemicalLoss(ABC):
         self._bond_length_tolerance = bond_length_tolerance
         self._bond_angle_tolerance = bond_angle_tolerance
         self._dihedral_tolerance = dihedral_tolerance
+
+        self._device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # getters vvv
     @property
@@ -122,6 +126,10 @@ class ChemicalLoss(ABC):
         dihedral tolerance (rads)
         '''
         return self._dihedral_tolerance
+    
+    @property
+    def device(self) -> torch.device:
+        return self.device
     # getters ^^^
 
     def calc_total_loss(self, 
@@ -213,6 +221,8 @@ class DisulfideLoss(ChemicalLoss):
                  offsets: Dict[str, float] = {'bond_lengths': 0, 'bond_angles': 0, 'dihedral_angles': 0},
                  use_bond_lengths: bool = True, use_bond_angles: bool = True, use_dihedrals: bool = True,
                  bond_length_tolerance: float = 0.2, bond_angle_tolerance: float = 0.1, dihedral_tolerance: float = 0.1,
+
+                 device: torch.device = None
                  ):
         
         '''
@@ -230,6 +240,8 @@ class DisulfideLoss(ChemicalLoss):
                          
                          bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
                          dihedral_tolerance= dihedral_tolerance,
+
+                         device=device ,
                          )
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
@@ -239,8 +251,9 @@ class DisulfideLoss(ChemicalLoss):
         beta_index_1 = self._indexes['b1']
         beta_index_2 = self._indexes['b2']
         target_distance=2.05, # Typical bond length in Å (?)
-        target_bond_angle = torch.deg2rad(torch.tensor(102.5))
-        target_dihedral = torch.deg2rad(torch.tensor(90.0))
+        
+        target_bond_angle = torch.deg2rad(torch.tensor(102.5, device= self.device))
+        target_dihedral = torch.deg2rad(torch.tensor(90.0, device= self.device))
 
         length_tolerance= self.bond_length_tolerance
         bond_angle_tolerance= self.bond_angle_tolerance

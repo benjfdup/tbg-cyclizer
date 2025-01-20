@@ -116,8 +116,17 @@ class CyclicLossHandler():
 
         return losses
 
-
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
         batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
         
         return soft_min(batched_losses) # [n_batches, ]
+    
+    def get_smallest_loss(self, positions: torch.Tensor) -> list[cl.ChemicalLoss]:
+        batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
+
+        min_indexes = torch.argmin(batched_losses, dim= 1) # [n_batches, ]
+
+        # Use the indices to cobble together the corresponding loss objects
+        smallest_losses = [self.losses[idx] for idx in min_indexes.tolist()]
+        
+        return smallest_losses # len= n_batches
