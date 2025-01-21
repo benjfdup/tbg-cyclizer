@@ -21,12 +21,16 @@ def bond_angle(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor) -> torch.Te
     """
     Compute bond angles for batches of points.
 
-    Parameters:
+    Computes the angle formed by vec(a2, a1) & vec(a2, a3)
+
+    Args:
+    ----
     a1, a2, a3 (torch.Tensor): Tensors of shape (batch_size, 3). 
     
     a2 is the "middle" atom that is the "crook" of the angle. a1 & a3 are the angle extremities.
 
     Returns:
+    -------
     torch.Tensor: Bond angles of shape (batch_size, ), in radians.
     """
     
@@ -43,10 +47,13 @@ def bond_angle(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor) -> torch.Te
 
     return result
 
-def dihedral_angle(a1: torch.Tensor, a2: torch.Tensor, 
+def dihedral_angle(a1: torch.Tensor, a2: torch.Tensor, # make sure to check the signs formed by the angles here...
                    a3: torch.Tensor, a4: torch.Tensor) -> torch.Tensor:
     """
     Compute dihedral angles for batches of points.
+
+    Computes the dihedral angle where a1 is the first "horn," v23 forms the
+    "joint" axis, and a4 is the second "horn."
 
     Parameters:
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
@@ -132,13 +139,15 @@ def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4
     """
     Compute dihedral angle losses with tolerance for batches.
 
+    Computes a dihedral angle
+
     Parameters:
     a1, a2, a3, a4 (torch.Tensor): Tensors of shape (batch_size, 3).
     target_angle (float): Target dihedral angle in radians.
     tolerance (float): No-penalty range around the target angle in radians.
 
     Returns:
-    torch.Tensor: Losses of shape (batch_size).
+    torch.Tensor: Losses of shape (batch_size, ).
     """
     d_angle = dihedral_angle(a1, a2, a3, a4)
     error = torch.abs(d_angle - target_angle)
@@ -148,7 +157,7 @@ def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4
 
     result = penalty
 
-    return result
+    return result # [batch_size, ]
 
 def motif_absolute(*argv, target_structure): ### TODO: IMPLEMENT THIS
     """
@@ -185,13 +194,6 @@ def soft_min(inputs: torch.Tensor, alpha=-3) -> torch.Tensor:
     result = torch.sum(inputs * exps, dim=-1) / torch.sum(exps, dim=-1)
     
     return result
-
-# below is very unrelated, but not sure where else to include this
-def inherit_docstring(parent_method):
-    def decorator(method):
-        method.__doc__ = parent_method.__doc__
-        return method
-    return decorator
 
 # generates edges per the below scheme
 def generate_bb_all_sc_adjacent_from_pdb(pdb_file: str):
@@ -292,3 +294,10 @@ def generate_bb_all_sc_adjacent_from_pdb(pdb_file: str):
     edges = torch.tensor(edges, dtype=torch.long).T  # Shape: [2, num_edges]
     #print('DONE generating adjacency matrix')
     return edges
+
+# unsure of where else to put this
+def inherit_docstring(parent_method):
+    def decorator(method):
+        method.__doc__ = parent_method.__doc__
+        return method
+    return decorator

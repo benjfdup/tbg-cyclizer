@@ -18,6 +18,9 @@ class ChemicalLoss(ABC):
     '''
     A loss for organizing the individual chemical losses that are used in this project.
     '''
+
+    # Class-level attribute for required keys; subclasses can override this
+    indexes_keys = set()
     
     def __init__(self, method: str, indexes: Dict[str, int], weights: Dict[str, float], 
                  offsets: Dict[str, float], use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool,
@@ -27,6 +30,10 @@ class ChemicalLoss(ABC):
 
                  device: torch.device = None
                  ):
+        
+        assert set(indexes.keys()) == self.indexes_keys, \
+                f"The indexes dictionary must contain exactly the keys: {self.indexes_keys}. " \
+                f"Received keys: {set(indexes.keys())}"
         
         self._indexes = indexes
         self._weights = weights
@@ -219,20 +226,40 @@ class DisulfideLoss(ChemicalLoss):
                  # defaults below #
                  weights: Dict[str, float] = {'bond_lengths': 1, 'bond_angles': 1, 'dihedral_angles': 1},
                  offsets: Dict[str, float] = {'bond_lengths': 0, 'bond_angles': 0, 'dihedral_angles': 0},
-                 use_bond_lengths: bool = True, use_bond_angles: bool = True, use_dihedrals: bool = True,
-                 bond_length_tolerance: float = 0.2, bond_angle_tolerance: float = 0.1, dihedral_tolerance: float = 0.1,
+                 use_bond_lengths: bool = True, 
+                 use_bond_angles: bool = True, 
+                 use_dihedrals: bool = True,
+                 
+                 bond_length_tolerance: float = 0.7, # get sources to support this
+                 bond_angle_tolerance: float = 0.2,  # get sources to support this
+                 dihedral_tolerance: float = 0.52, # best guess, 30 deg.
 
                  device: torch.device = None
                  ):
         
         '''
-        indexes must contain keys 's1', 's2', 'b1', 'b2'
-        '''
+        Instantiates a disulfide loss object, which is a subclass of ChemicalLoss.
 
-        # Assert that the keys in indexes are exactly the required keys
-        assert set(indexes.keys()) == DisulfideLoss.indexes_keys, \
-            f"The indexes dictionary must contain exactly the keys: {DisulfideLoss.indexes_keys}. " \
-            f"Received keys: {set(indexes.keys())}"
+        Instantiates a disulfide loss object, whose job is largely to return the error associated with
+        a Cysteine-Cysteine disulfide bridge for peptide cyclization. This is used to help compute a 
+        generated sample's total cyclic loss. When called, this object returns the particular disulfide
+        associated with a particular pair of Cysteine residues.
+
+        Args:
+        ----
+        method: str
+            the method of this particular disulfide loss. this string should be precise, as to encode that
+            both a disulfide loss is being applied, and between which Cysteine residues this object is
+            applied to.
+        
+        indexes: Dict[str, int]
+            the atomic indexes that this particular loss fn accesses. Must contain keys 's1', 's2', 'b1', 'b2'
+
+        ... finish docstring
+
+        Returns:
+        -------
+        '''
         
         super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
                          use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
@@ -246,14 +273,19 @@ class DisulfideLoss(ChemicalLoss):
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
         pos = positions # should be of shap (n_batch, n_atoms, 3)
-        sulfur_index_1 = self._indexes['s1']
-        sulfur_index_2 = self._indexes['s2']
-        beta_index_1 = self._indexes['b1']
-        beta_index_2 = self._indexes['b2']
-        target_distance=2.05, # Typical bond length in Å (?)
+        sulfur_index_1 = self._indexes['s1'] # sulfur of first cysteine
+        sulfur_index_2 = self._indexes['s2'] # sulfur of second cysteine
+
+        beta_index_1 = self._indexes['b1'] # beta carbon of first cysteine (side chain)
+        beta_index_2 = self._indexes['b2'] # beta carbon of second cysteine (side chain)
+        target_distance=2.05, # Typical bond length in Å
         
-        target_bond_angle = torch.deg2rad(torch.tensor(102.5, device= self.device))
+        target_bond_angle = torch.deg2rad(torch.tensor(105.6, device= self.device))
+        # ^ https://doi.org/10.1038/npre.2011.6692.1 ^
+        
         target_dihedral = torch.deg2rad(torch.tensor(90.0, device= self.device))
+        # ^ https://pubs.rsc.org/en/content/articlepdf/2018/sc/c8sc01423j ^
+        # to begin, I am only considering χ^3 from the above paper
 
         length_tolerance= self.bond_length_tolerance
         bond_angle_tolerance= self.bond_angle_tolerance
@@ -270,19 +302,21 @@ class DisulfideLoss(ChemicalLoss):
         angle2_loss = 0
         dihedral_loss = 0
 
-        if self.use_bond_lengths:
-            dist_loss += distance_loss(s1_atom, s2_atom, target_distance, length_tolerance)  # Shape: (batch_size)
+        if self.use_bond_lengths: # verify bonding signs. How to do this?
+            dist_loss += distance_loss(s1_atom, s2_atom, target_distance, length_tolerance)  # [batch_size, ]
         if self.use_bond_angles:
-            angle1_loss += bond_angle_loss(b1_atom, s1_atom, s2_atom, target_bond_angle, bond_angle_tolerance)  # Shape: (batch_size)
-            angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # Shape: (batch_size)
+            angle1_loss += bond_angle_loss(b1_atom, s1_atom, s2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
+            angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
         if self.use_dihedrals:
-            dihedral_loss = dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, target_dihedral, dihedral_tolerance)  # Shape: (batch_size)
+            dihedral_loss= torch.minimum(dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, target_dihedral, dihedral_tolerance), 
+                                         dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, -1 * target_dihedral, dihedral_tolerance))
+            # [batch_size, ]
     
         total_loss = self.calc_total_loss(distance_losses=dist_loss, 
                                           bond_angle_losses=angle1_loss + angle2_loss, 
                                           dihedral_losses= dihedral_loss)
 
-        return total_loss # should be of shape [n_batch, ]
+        return total_loss #[n_batch, ]
     
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
     @classmethod
@@ -310,8 +344,48 @@ class DisulfideLoss(ChemicalLoss):
                 method_str = f'Disulfide, CYS {cys_1.index} & CYS {cys_2.index}'
 
                 indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
-        
+    
         return indexes_method_pairs_list
+    
+class HeadToTailAmideLoss(ChemicalLoss):
+
+    indexes_keys = {'s1', 's2', 'b1', 'b2',}
+
+    def __init__(self, method: str, indexes: Dict[str, int], 
+                 
+                 # defaults below #
+                 weights: Dict[str, float] = {'bond_lengths': 1, 'bond_angles': 1, 'dihedral_angles': 1},
+                 offsets: Dict[str, float] = {'bond_lengths': 0, 'bond_angles': 0, 'dihedral_angles': 0},
+                 use_bond_lengths: bool = True, 
+                 use_bond_angles: bool = True, 
+                 use_dihedrals: bool = True,
+                 
+                 bond_length_tolerance: float = 0.7, # TODO: replace
+                 bond_angle_tolerance: float = 0.2,  # TODO: replace
+                 dihedral_tolerance: float = 0.52, # TODO: replace
+
+                 device: torch.device = None
+                 ):
+        
+        '''
+        add docstring here...
+        '''
+        
+        super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
+                         use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
+                         use_dihedrals= use_dihedrals,
+                         
+                         bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
+                         dihedral_tolerance= dihedral_tolerance,
+
+                         device=device ,
+                         )
+
+    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def get_indexes_and_methods(cls, traj: md.Trajectory, atomic_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+        pass
     
 ######################################################################
 # What is left to do:

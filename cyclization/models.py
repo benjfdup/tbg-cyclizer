@@ -8,9 +8,11 @@ from LossCoeff import LossCoeff
 from CyclicLossHandler import CyclicLossHandler
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
-    def __init__(self, *args, pdb_file=None, **kwargs):
+    def __init__(self, *args, pdb_file: str= None, device: torch.device= None, **kwargs):
         self.counter = 0
         self._custom_adj_matrix = None
+
+        self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         super().__init__(*args, **kwargs)
         self.pdb_file = pdb_file
@@ -18,7 +20,7 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
             # Generate a custom adjacency matrix from the PDB file
             edge_tensor = generate_bb_all_sc_adjacent_from_pdb(pdb_file)
             self._custom_adj_matrix = edge_tensor
-            self.edges = edge_tensor
+            self.edges = edge_tensor.to(self.device)
         else:
             self.edges = super()._create_edges()
 
@@ -57,7 +59,7 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         representing the loss coefficient [torch.Tensor, shape (n_batch, )].
     '''
 
-    def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, with_dlogp=True, **kwargs):
+    def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, with_dlogp: bool=True, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.w_t = w_t
@@ -82,8 +84,7 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
 
         n_batch = xs.shape[0]
         
-        with torch.no_grad():
-            vel = super().forward(t, xs) # disable grad for this?
+        vel = super().forward(t, xs)
 
         cyclic_loss = self.l_cyclic(xs.view(n_batch, self._n_particles, self._n_dimension))
 
