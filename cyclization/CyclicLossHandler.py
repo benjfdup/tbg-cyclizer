@@ -23,13 +23,14 @@ class CyclicLossHandler():
         self._pdb_path = pdb_path
         self._strategies = strategies
         self._alpha = alpha
-        self._losses = self._initialize_losses()
         self._weights = weights
         self._offsets = offsets
 
         self._use_bond_lengths = use_bond_lengths
         self._use_bond_angles = use_bond_angles
         self._use_dihedrals = use_dihedrals
+
+        self._losses = self._initialize_losses()
         
     # getters vvv
     @property
@@ -105,12 +106,12 @@ class CyclicLossHandler():
                 indexes = pair.indexes
                 method_str = pair.method
 
-                loss = strat.__init__(method=method_str, indexes=indexes, 
-                                      weights= self.weights, offsets= self.offsets,
-                                      use_bond_lengths= self.use_bond_lengths,
-                                      use_bond_angles= self.use_bond_angles,
-                                      use_dihedrals= self.use_dihedrals,
-                                      )
+                loss = strat(method=method_str, indexes=indexes,
+                             weights= self.weights, offsets= self.offsets,
+                             use_bond_lengths= self.use_bond_lengths,
+                             use_bond_angles= self.use_bond_angles,
+                             use_dihedrals= self.use_dihedrals,
+                             )
                 
                 losses.append(loss)
 

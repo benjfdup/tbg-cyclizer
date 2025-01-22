@@ -347,9 +347,17 @@ class DisulfideLoss(ChemicalLoss):
     
         return indexes_method_pairs_list
     
-class HeadToTailAmideLoss(ChemicalLoss):
+class H2TAmideLoss(ChemicalLoss):
+    '''
+    Loss of cyclization of a head to tail amide bond
+    '''
 
-    indexes_keys = {'s1', 's2', 'b1', 'b2',}
+    indexes_keys = {'c', # carbonyl carbon
+                    'ca', # alpha carbon of amino acid with the carbonyl group.
+                    'n', # amide nitrogen
+                    'h1', # amide hydrogen 1
+                    'h2', # amide hydrogen 2
+                    }
 
     def __init__(self, method: str, indexes: Dict[str, int], 
                  
@@ -366,7 +374,6 @@ class HeadToTailAmideLoss(ChemicalLoss):
 
                  device: torch.device = None
                  ):
-        
         '''
         add docstring here...
         '''
@@ -378,7 +385,7 @@ class HeadToTailAmideLoss(ChemicalLoss):
                          bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
                          dihedral_tolerance= dihedral_tolerance,
 
-                         device=device ,
+                         device=device,
                          )
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
