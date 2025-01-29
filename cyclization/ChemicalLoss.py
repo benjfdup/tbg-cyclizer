@@ -344,7 +344,7 @@ class DisulfideLoss(ChemicalLoss):
                     'b2': beta_index_2,
                 }
 
-                method_str = f'Disulfide, CYS {cys_1.index} & CYS {cys_2.index}'
+                method_str = f'Disulfide, CYS {cys_1.index} -> CYS {cys_2.index}'
 
                 indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
     
@@ -421,14 +421,12 @@ class H2TAmideLoss(ChemicalLoss):
         # Compute individual losses
         dist_loss = 0
         angle1_loss = 0
-        angle2_loss = 0
         dihedral_loss = 0
 
         if self.use_bond_lengths: # verify bonding signs. How to do this?
             dist_loss += distance_loss(cyl_atom, n_atom, target_distance, length_tolerance)  # [batch_size, ]
         if self.use_bond_angles:
             angle1_loss += bond_angle_loss(ca_atom, cyl_atom, n_atom, target_ca_cyl_n_angle, bond_angle_tolerance)  # [batch_size, ]
-            #angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
         if self.use_dihedrals:
             dihedral_loss= torch.minimum(dihedral_angle_loss(oxy_atom, cyl_atom, n_atom, h1_atom, 
                                                              target_peptide_dihedral_angle, dihedral_tolerance), 
@@ -457,32 +455,20 @@ class H2TAmideLoss(ChemicalLoss):
         last_res = residue_list[-1]  # "Tail" residue (C-terminal)
 
         # Get relevant atom indexes
-        try:
-            indexes_dict = {
-                'c': atom_indexes_dict[(last_res.index, 'C')],   # Carbonyl carbon from the last residue
-                'o': atom_indexes_dict[(last_res.index, 'O')],   # Carbonyl oxygen from the last residue
-                'ca': atom_indexes_dict[(last_res.index, 'CA')], # Alpha carbon of last residue
-                'n': atom_indexes_dict[(first_res.index, 'N')],  # Amide nitrogen from the first residue
-                'h1': atom_indexes_dict[(first_res.index, 'H1')],  # Amide hydrogen 1
-                'h2': atom_indexes_dict[(first_res.index, 'H2')],  # Amide hydrogen 2
+        indexes_dict = {
+            'c': atom_indexes_dict[(last_res.index, 'C')],   # Carbonyl carbon from the last residue
+            'o': atom_indexes_dict[(last_res.index, 'O')],   # Carbonyl oxygen from the last residue
+            'ca': atom_indexes_dict[(last_res.index, 'CA')], # Alpha carbon of last residue
+            'n': atom_indexes_dict[(first_res.index, 'N')],  # Amide nitrogen from the first residue
+            'h1': atom_indexes_dict[(first_res.index, 'H1')],  # Amide hydrogen 1
+            'h2': atom_indexes_dict[(first_res.index, 'H2')],  # Amide hydrogen 2
             }
-        except KeyError:
-            return indexes_method_pairs_list  # If any atom is missing, skip
 
-        method_str = f'Head-to-Tail Amide Bond, {first_res.name} {first_res.index} → {last_res.name} {last_res.index}'
+        method_str = f'Head-to-Tail Amide Bond, {first_res.name} {first_res.index} -> {last_res.name} {last_res.index}'
 
         indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
 
         return indexes_method_pairs_list
 
-class LactamLoss(ChemicalLoss):
+class SulfurMediatedAmideLoss(ChemicalLoss):
     pass
-
-    
-######################################################################
-# What is left to do:
-# Implement the loss strategies discussed by Alex.
-# Particularly, I need the distances between 'cannonical' atoms.
-# the bond angles formed by cannonical atoms.
-# and the dihedral angles formed by cannonical atoms.
-######################################################################

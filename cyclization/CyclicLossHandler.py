@@ -132,6 +132,12 @@ class CyclicLossHandler():
         
         return smallest_losses # len= n_batches
     
+    def get_smallest_loss_methods(self, positions: torch.Tensor) -> list[str]:
+        loss_list = self.get_smallest_loss(positions)
+        smallest_loss_methods = [loss.method for loss in loss_list]
+
+        return smallest_loss_methods
+        
     def eval_smallest_loss(self, positions: torch.Tensor) -> torch.Tensor:
         batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
 
