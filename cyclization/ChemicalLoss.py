@@ -14,6 +14,8 @@ from IndexesMethodPair import IndexesMethodPair
 # These losses are then considered in || by the loss handler.
 ######################################################################
 
+# dihedral angle values -- use newman diagrams to visualizing.
+
 class ChemicalLoss(ABC):
     '''
     A loss for organizing the individual chemical losses that are used in this project.
@@ -307,6 +309,7 @@ class DisulfideLoss(ChemicalLoss):
         if self.use_bond_angles:
             angle1_loss += bond_angle_loss(b1_atom, s1_atom, s2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
             angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
+            # ^ probably want to normalize this somehow ^
         if self.use_dihedrals:
             dihedral_loss= torch.minimum(dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, target_dihedral, dihedral_tolerance), 
                                          dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, -1 * target_dihedral, dihedral_tolerance))
@@ -353,7 +356,8 @@ class H2TAmideLoss(ChemicalLoss):
     '''
 
     indexes_keys = {'c', # carbonyl carbon
-                    'ca', # alpha carbon of amino acid with the carbonyl group.
+                    'o', # carnonyl oxygen
+                    'ca', # alpha carbon of amino acid with the BINDING carbonyl group.
                     'n', # amide nitrogen
                     'h1', # amide hydrogen 1
                     'h2', # amide hydrogen 2
@@ -368,9 +372,9 @@ class H2TAmideLoss(ChemicalLoss):
                  use_bond_angles: bool = True, 
                  use_dihedrals: bool = True,
                  
-                 bond_length_tolerance: float = 0.7, # TODO: replace
-                 bond_angle_tolerance: float = 0.2,  # TODO: replace
-                 dihedral_tolerance: float = 0.52, # TODO: replace
+                 bond_length_tolerance: float = 0.1, # Å
+                 bond_angle_tolerance: float = 0.17,  # TODO: arbitrarily chosen, rads
+                 dihedral_tolerance: float = 0.17, # TODO: arbitratily chosen, rads
 
                  device: torch.device = None
                  ):
@@ -389,10 +393,91 @@ class H2TAmideLoss(ChemicalLoss):
                          )
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
-        pass
+        pos = positions # should be of shap (n_batch, n_atoms, 3)
+        carbonyl_carbon_index = self._indexes['c'] # carbonyl carbon
+        oxygen_index = self._indexes['o'] # carbonyl oxygen
+        carbon_alpha_index = self._indexes['ca'] # carbon alpha
+        amide_nitrogen_index = self._indexes['n'] # amide nitrogen
+        amide_hydrogen_1_index = self._indexes['h1'] # amide hydrogen 1
+        amide_hydrogen_2_index = self._indexes['h2'] # amide hydrogen 2
 
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atomic_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
-        pass
+        target_distance=1.32, # Typical bond length in Å
+        #^ https://doi.org/10.1016/B978-0-12-095461-2.00004-7 ^#
+        target_ca_cyl_n_angle = torch.deg2rad(torch.tensor(114.0, device= self.device))
+        target_peptide_dihedral_angle = torch.deg2rad(torch.tensor(0.0, device= self.device)) # peptide bond components are planar
+        #^ https://doi.org/10.1016/B978-0-12-095461-2.00004-7 ^#
+
+        cyl_atom = pos[:, carbonyl_carbon_index, :].squeeze()
+        oxy_atom = pos[:, oxygen_index, :].squeeze()
+        ca_atom = pos[:, carbon_alpha_index, :].squeeze()
+        n_atom = pos[:, amide_nitrogen_index, :].squeeze()
+        h1_atom = pos[:, amide_hydrogen_1_index, :].squeeze()
+        h2_atom = pos[:, amide_hydrogen_2_index, :].squeeze()
+
+        length_tolerance= self.bond_length_tolerance
+        bond_angle_tolerance= self.bond_angle_tolerance
+        dihedral_tolerance= self.dihedral_tolerance
+
+        # Compute individual losses
+        dist_loss = 0
+        angle1_loss = 0
+        angle2_loss = 0
+        dihedral_loss = 0
+
+        if self.use_bond_lengths: # verify bonding signs. How to do this?
+            dist_loss += distance_loss(cyl_atom, n_atom, target_distance, length_tolerance)  # [batch_size, ]
+        if self.use_bond_angles:
+            angle1_loss += bond_angle_loss(ca_atom, cyl_atom, n_atom, target_ca_cyl_n_angle, bond_angle_tolerance)  # [batch_size, ]
+            #angle2_loss += bond_angle_loss(s1_atom, s2_atom, b2_atom, target_bond_angle, bond_angle_tolerance)  # [batch_size, ]
+        if self.use_dihedrals:
+            dihedral_loss= torch.minimum(dihedral_angle_loss(oxy_atom, cyl_atom, n_atom, h1_atom, 
+                                                             target_peptide_dihedral_angle, dihedral_tolerance), 
+                                         dihedral_angle_loss(oxy_atom, cyl_atom, n_atom, h2_atom, 
+                                                             target_peptide_dihedral_angle, dihedral_tolerance))
+            # C, O, N, H atom lie all in the same plane.
+            # [batch_size, ]
+    
+        total_loss = self.calc_total_loss(distance_losses=dist_loss, 
+                                          bond_angle_losses=angle1_loss, 
+                                          dihedral_losses= dihedral_loss)
+        
+        return total_loss
+    
+    @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
+    @classmethod
+    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+
+        indexes_method_pairs_list = []
+        
+        residue_list = list(traj.topology.residues)
+        if len(residue_list) < 2:
+            return indexes_method_pairs_list  # Not enough residues for a cyclic bond
+
+        first_res = residue_list[0]  # "Head" residue (N-terminal)
+        last_res = residue_list[-1]  # "Tail" residue (C-terminal)
+
+        # Get relevant atom indexes
+        try:
+            indexes_dict = {
+                'c': atom_indexes_dict[(last_res.index, 'C')],   # Carbonyl carbon from the last residue
+                'o': atom_indexes_dict[(last_res.index, 'O')],   # Carbonyl oxygen from the last residue
+                'ca': atom_indexes_dict[(last_res.index, 'CA')], # Alpha carbon of last residue
+                'n': atom_indexes_dict[(first_res.index, 'N')],  # Amide nitrogen from the first residue
+                'h1': atom_indexes_dict[(first_res.index, 'H1')],  # Amide hydrogen 1
+                'h2': atom_indexes_dict[(first_res.index, 'H2')],  # Amide hydrogen 2
+            }
+        except KeyError:
+            return indexes_method_pairs_list  # If any atom is missing, skip
+
+        method_str = f'Head-to-Tail Amide Bond, {first_res.name} {first_res.index} → {last_res.name} {last_res.index}'
+
+        indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
+
+        return indexes_method_pairs_list
+
+class LactamLoss(ChemicalLoss):
+    pass
+
     
 ######################################################################
 # What is left to do:

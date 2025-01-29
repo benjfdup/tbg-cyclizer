@@ -100,9 +100,11 @@ def distance_loss(a1: torch.Tensor, a2: torch.Tensor,
     Returns:
     torch.Tensor: Losses of shape [batch_size, ].
     """
+    assert tolerance < target_distance, "tolerance shouldn't exceed target_distance"
+
     sq_dist = sq_distance(a1, a2)
     dist = torch.sqrt(sq_dist)
-    error = torch.abs(dist - target_distance)
+    error = torch.abs(dist - target_distance) # need to allow for unevent tolerances (on either side).
     
     # Apply tolerance: zero penalty within tolerance range
     penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
@@ -135,7 +137,7 @@ def bond_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor,
     return result
 
 def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4: torch.Tensor, 
-                        target_angle: float, tolerance: float= 0.0) -> torch.Tensor:
+                        target_angle: float, tolerance: float= 0.0) -> torch.Tensor: # make sure to fix "loop" around problem, and allow for planarity!
     """
     Compute dihedral angle losses with tolerance for batches.
 
