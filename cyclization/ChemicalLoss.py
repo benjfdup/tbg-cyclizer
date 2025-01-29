@@ -1,5 +1,5 @@
 ### Imports ###
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Dict
 from math import pi
 
@@ -16,7 +16,7 @@ from IndexesMethodPair import IndexesMethodPair
 
 # dihedral angle values -- use newman diagrams to visualizing.
 
-class ChemicalLoss(ABC):
+class ChemicalLoss(metaclass=ABCMeta):
     '''
     A loss for organizing the individual chemical losses that are used in this project.
     '''
@@ -192,7 +192,7 @@ class ChemicalLoss(ABC):
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
         '''
         Returns a list of tuples, each of which denote an indexes, method str pair; this can then be used
-        the losses __init__ method to initialize an instance of it
+        the losses __init__ method to initialize an instance of this subclass of ChemicalLoss
 
         Args:
         ----
@@ -221,7 +221,11 @@ class DisulfideLoss(ChemicalLoss):
     Loss of cyclization of disulfide bond between 2 cystines.
     '''
 
-    indexes_keys = {'s1', 's2', 'b1', 'b2',}
+    indexes_keys = {'s1',
+                    's2',
+                    'b1',
+                    'b2',
+                    }
 
     def __init__(self, method: str, indexes: Dict[str, int], 
                  
@@ -270,7 +274,7 @@ class DisulfideLoss(ChemicalLoss):
                          bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
                          dihedral_tolerance= dihedral_tolerance,
 
-                         device=device ,
+                         device=device,
                          )
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
@@ -313,7 +317,7 @@ class DisulfideLoss(ChemicalLoss):
         if self.use_dihedrals:
             dihedral_loss= torch.minimum(dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, target_dihedral, dihedral_tolerance), 
                                          dihedral_angle_loss(b1_atom, s1_atom, s2_atom, b2_atom, -1 * target_dihedral, dihedral_tolerance))
-            # [batch_size, ]
+            # [batch_size, ] # consider dropping this out
     
         total_loss = self.calc_total_loss(distance_losses=dist_loss, 
                                           bond_angle_losses=angle1_loss + angle2_loss, 
@@ -350,11 +354,26 @@ class DisulfideLoss(ChemicalLoss):
     
         return indexes_method_pairs_list
     
-class H2TAmideLoss(ChemicalLoss):
+class AmideAbstractLoss(ChemicalLoss, metaclass=ABCMeta):
     '''
-    Loss of cyclization of a head to tail amide bond
+    Abstract loss to handle all cyclic amide losses
     '''
 
+    amide_bond_length=1.32 # Typical bond length in Å
+
+######################################################################
+# Below are the specific implementations of all Amine2CTail losses
+# considered in this project. They all use the call defined below,
+# but simply have differing get_indexes_and_methods implementations.
+# Note that H2TAmide is somewhat arbitrarily included herein.
+######################################################################
+
+class Amine2CTail(AmideAbstractLoss, metaclass=ABCMeta): # TODO: put all amide commonalities here.
+    '''
+    Abstract loss to handle all amide losses where a (most often side-chain) amine is binding to a C terminal carbonyl.
+
+    Included in this "family," somewhat arbitrarily, is the H2TAmideLoss
+    '''
     indexes_keys = {'c', # carbonyl carbon
                     'o', # carnonyl oxygen
                     'ca', # alpha carbon of amino acid with the BINDING carbonyl group.
@@ -363,37 +382,8 @@ class H2TAmideLoss(ChemicalLoss):
                     'h2', # amide hydrogen 2
                     }
 
-    def __init__(self, method: str, indexes: Dict[str, int], 
-                 
-                 # defaults below #
-                 weights: Dict[str, float] = {'bond_lengths': 1, 'bond_angles': 1, 'dihedral_angles': 1},
-                 offsets: Dict[str, float] = {'bond_lengths': 0, 'bond_angles': 0, 'dihedral_angles': 0},
-                 use_bond_lengths: bool = True, 
-                 use_bond_angles: bool = True, 
-                 use_dihedrals: bool = True,
-                 
-                 bond_length_tolerance: float = 0.1, # Å
-                 bond_angle_tolerance: float = 0.17,  # TODO: arbitrarily chosen, rads
-                 dihedral_tolerance: float = 0.17, # TODO: arbitratily chosen, rads
-
-                 device: torch.device = None
-                 ):
-        '''
-        add docstring here...
-        '''
-        
-        super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
-                         use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
-                         use_dihedrals= use_dihedrals,
-                         
-                         bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
-                         dihedral_tolerance= dihedral_tolerance,
-
-                         device=device,
-                         )
-
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
-        pos = positions # should be of shap (n_batch, n_atoms, 3)
+        pos = positions # should be of shape (n_batch, n_atoms, 3)
         carbonyl_carbon_index = self._indexes['c'] # carbonyl carbon
         oxygen_index = self._indexes['o'] # carbonyl oxygen
         carbon_alpha_index = self._indexes['ca'] # carbon alpha
@@ -401,7 +391,7 @@ class H2TAmideLoss(ChemicalLoss):
         amide_hydrogen_1_index = self._indexes['h1'] # amide hydrogen 1
         amide_hydrogen_2_index = self._indexes['h2'] # amide hydrogen 2
 
-        target_distance=1.32, # Typical bond length in Å
+        target_distance= self.amide_bond_length, # Typical bond length in Å
         #^ https://doi.org/10.1016/B978-0-12-095461-2.00004-7 ^#
         target_ca_cyl_n_angle = torch.deg2rad(torch.tensor(114.0, device= self.device))
         target_peptide_dihedral_angle = torch.deg2rad(torch.tensor(0.0, device= self.device)) # peptide bond components are planar
@@ -441,6 +431,11 @@ class H2TAmideLoss(ChemicalLoss):
         
         return total_loss
     
+class H2TAmideLoss(Amine2CTail):
+    '''
+    Loss of cyclization of a head to tail amide bond
+    '''
+    
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
     @classmethod
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
@@ -470,5 +465,62 @@ class H2TAmideLoss(ChemicalLoss):
 
         return indexes_method_pairs_list
 
-class SulfurMediatedAmideLoss(ChemicalLoss):
-    pass
+class Lysine2CTerminalLoss(AmideAbstractLoss):
+    '''
+    Loss of cyclization of a Lysine sidechain amine group to a peptide C-terminal.
+    This handles cases where a peptide is cyclized via the ε-amine group of lysine 
+    bonding to the C-terminal carbonyl of the peptide.
+    '''
+
+    @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
+    @classmethod
+    def get_indexes_and_methods(cls, traj: md.Trajectory, 
+                                atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+
+        indexes_method_pairs_list = []
+        
+        residue_list = list(traj.topology.residues)
+        if len(residue_list) < 2:
+            return indexes_method_pairs_list  # Not enough residues for a cyclic bond
+
+        last_res = residue_list[-1]  # C-terminal residue
+
+        # Find all lysine residues (LYS)
+        lysines = [r for r in residue_list if r.name == "LYS"]
+
+        for lys in lysines:
+            # Ensure necessary atoms exist in the mapping
+            if (lys.index, 'NZ') not in atom_indexes_dict or \
+               (lys.index, 'H1') not in atom_indexes_dict or \
+               (lys.index, 'H2') not in atom_indexes_dict or \
+               (last_res.index, 'C') not in atom_indexes_dict or \
+               (last_res.index, 'O') not in atom_indexes_dict or \
+               (last_res.index, 'CA') not in atom_indexes_dict:
+                #continue  # Skip if any required atoms are missing
+                raise NotImplementedError('Lysine is missing atoms...')
+
+            # Define atomic index mapping
+            indexes_dict = {
+                'c': atom_indexes_dict[(last_res.index, 'C')],   # Carbonyl carbon from last residue
+                'o': atom_indexes_dict[(last_res.index, 'O')],   # Carbonyl oxygen from last residue
+                'ca': atom_indexes_dict[(last_res.index, 'CA')], # Alpha carbon of last residue
+                'n': atom_indexes_dict[(lys.index, 'NZ')],       # Amide nitrogen from Lysine sidechain
+                'h1': atom_indexes_dict[(lys.index, 'H1')],      # Amide hydrogen 1 (assumed)
+                'h2': atom_indexes_dict[(lys.index, 'H2')],      # Amide hydrogen 2 (assumed)
+            }
+
+            # Create descriptive method string
+            method_str = f'Lysine ε-Amine to C-Terminal Bond, LYS {lys.index} -> {last_res.name} {last_res.index}'
+
+            # Append result
+            indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
+
+        return indexes_method_pairs_list
+        
+
+######################################################################
+# Above are the specific implementations of all Amine2CTail losses
+# considered in this project. They all use the call defined below,
+# but simply have differing get_indexes_and_methods implementations.
+# Note that H2TAmide is somewhat arbitrarily included herein.
+######################################################################

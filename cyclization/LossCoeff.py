@@ -105,3 +105,21 @@ class Constant(LossCoeff):
     
     def __call__(self, t: float) -> float:
         return self._const
+
+class HeavisideStep(LossCoeff):
+    def __init__(self, const):
+        pass
+
+
+class Pulse(LossCoeff): # TODO: finish implementing this.
+    def __init__(self, t1: float, t2: float, const: float):
+        assert 0 <= t1 < 1, 't1 must be ∈ [0, 1)'
+        assert 0 < t2 <= 1, 't2 must be ∈ (0, 1]'
+        assert 0 <= const <= 1, 'const must be ∈ [0, 1]'
+
+        self._t1 = t1
+        self._t2 = t2
+        self._const = const
+
+    def __call__(self, t: float) -> float:
+        pass
