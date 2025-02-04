@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Type, Set, Dict
 
 import torch
@@ -5,8 +6,19 @@ import mdtraj as md
 
 import ChemicalLoss as cl
 from utils import soft_min
+from LossCoeff import LossCoeff
 
-class CyclicLossHandler():
+class LossHandler(ABC):
+    @abstractmethod
+    def __call__(self, positions: torch.Tensor, *args, **kwargs):
+        '''
+        A method which calculates a loss for the atom positions in a given generated peptide.
+
+        Note, positions should be be of shape [n_batch, n_atoms, 3]
+        '''
+        pass
+
+class CyclicLossHandler(LossHandler):
 
     bonding_atoms = {"SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", }
     
@@ -142,3 +154,36 @@ class CyclicLossHandler():
         batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
 
         return torch.min(batched_losses, dim= 1)
+
+class GyrationLossHandler(LossHandler):
+    def __init__(self, squared: bool = False):
+        self._squared = squared
+
+    def __call__(self, positions: torch.Tensor):
+        # positions: [n_batch, n_atoms, 3]
+        
+        # Step 1: Compute the center of mass (mean position) for each batch
+        center_of_mass = torch.mean(positions, dim=1, keepdim=True)  # [n_batch, 1, 3]
+        
+        # Step 2: Compute the squared distances from each atom to the center of mass
+        squared_distances = torch.sum((positions - center_of_mass) ** 2, dim=-1)  # [n_batch, n_atoms]
+        
+        # Step 3: Compute the mean squared distance for each batch
+        mean_squared_distance = torch.mean(squared_distances, dim=1)  # [n_batch]
+        
+        # Step 4: Return either the squared radius of gyration or its square root
+        if self._squared:
+            return mean_squared_distance  # Return R_g^2
+        else:
+            return torch.sqrt(mean_squared_distance)  # Return R_g
+        
+class GyrationCyclicLossHandler(LossHandler):
+    def __init__(self, l_cyclic: CyclicLossHandler, l_gyr: GyrationLossHandler, gamma: LossCoeff):
+        self.gamma = gamma
+        self.l_cyclic = l_cyclic
+        self.l_gyr = l_gyr
+    
+    def __call__(self, positions: torch.Tensor, t: float):
+        g_t = self.gamma(t)
+
+        return g_t * self.l_gyr(positions = positions) + (1 - g_t) * self.l_cyclic(positions = positions)

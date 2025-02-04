@@ -362,13 +362,13 @@ class AmideAbstractLoss(ChemicalLoss, metaclass=ABCMeta):
     amide_bond_length=1.32 # Typical bond length in Å
 
 ######################################################################
-# Below are the specific implementations of all Amine2CTail losses
+# Below are the specific implementations of all Amine2CTerminal losses
 # considered in this project. They all use the call defined below,
 # but simply have differing get_indexes_and_methods implementations.
 # Note that H2TAmide is somewhat arbitrarily included herein.
 ######################################################################
 
-class Amine2CTail(AmideAbstractLoss, metaclass=ABCMeta): # TODO: put all amide commonalities here.
+class Amine2CTerminal(AmideAbstractLoss, metaclass=ABCMeta): # TODO: put all amide commonalities here.
     '''
     Abstract loss to handle all amide losses where a (most often side-chain) amine is binding to a C terminal carbonyl.
 
@@ -431,7 +431,7 @@ class Amine2CTail(AmideAbstractLoss, metaclass=ABCMeta): # TODO: put all amide c
         
         return total_loss
     
-class H2TAmideLoss(Amine2CTail):
+class H2TAmideLoss(Amine2CTerminal):
     '''
     Loss of cyclization of a head to tail amide bond
     '''
@@ -446,8 +446,8 @@ class H2TAmideLoss(Amine2CTail):
         if len(residue_list) < 2:
             return indexes_method_pairs_list  # Not enough residues for a cyclic bond
 
-        first_res = residue_list[0]  # "Head" residue (N-terminal)
-        last_res = residue_list[-1]  # "Tail" residue (C-terminal)
+        first_res = residue_list[0]  # N-terminal
+        last_res = residue_list[-1]  # C-terminal
 
         # Get relevant atom indexes
         indexes_dict = {
@@ -465,7 +465,7 @@ class H2TAmideLoss(Amine2CTail):
 
         return indexes_method_pairs_list
 
-class Lysine2CTerminalLoss(AmideAbstractLoss):
+class Lysine2CTerminalLoss(AmideAbstractLoss): # try to find strategies in the literature before including them here...
     '''
     Loss of cyclization of a Lysine sidechain amine group to a peptide C-terminal.
     This handles cases where a peptide is cyclized via the ε-amine group of lysine 
@@ -516,10 +516,9 @@ class Lysine2CTerminalLoss(AmideAbstractLoss):
             indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
 
         return indexes_method_pairs_list
-        
 
 ######################################################################
-# Above are the specific implementations of all Amine2CTail losses
+# Above are the specific implementations of all Amine2CTerminal losses
 # considered in this project. They all use the call defined below,
 # but simply have differing get_indexes_and_methods implementations.
 # Note that H2TAmide is somewhat arbitrarily included herein.

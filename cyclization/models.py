@@ -5,9 +5,14 @@ from tbg.utils import remove_mean
 
 from utils import generate_bb_all_sc_adjacent_from_pdb
 from LossCoeff import LossCoeff
-from CyclicLossHandler import CyclicLossHandler
+from tbg.cyclization.LossHandler import GyrationCyclicLossHandler, CyclicLossHandler, GyrationLossHandler
 
-class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
+######################################################################
+# vv Training Classes vv
+# Classes with custom graph pruning which are good to do training on
+######################################################################
+
+class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # conditioned on time
     def __init__(self, *args, pdb_file: str= None, device: torch.device= None, **kwargs):
         self.counter = 0
         self._custom_adj_matrix = None
@@ -37,9 +42,20 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat):
         else:
             # Fallback to the default behavior if no custom adjacency is provided
             return super()._create_edges()
-    
+        
+######################################################################
+# ^^ Training Classes ^^
+# Classes with custom graph pruning which are good to do training on.
+######################################################################
+
+######################################################################
+# vv Sampling Classes vv Bad for training.
+# First bunch is conditioned on time.
+# latter bunch is unconditioned on time.
+######################################################################
     
 class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
+    # just cyclic, conditioned on time.
     '''
     This model should not be used in training.
 
@@ -105,3 +121,69 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         self._cyclic_counter += 1
         return vel.view(n_batch,  self._n_particles* self._n_dimension)
 
+class EGNN_dynamics_AD2_cat_pruned_conditioned(EGNN_dynamics_AD2_cat_bb_all_sc_adjacent): # likely need to clean this code up...
+    # Conditioned on time
+    # gyration + cyclic conditioning
+
+    '''
+    This model should not be used in training.
+
+    A class representing the NetDynamics of all backbone atoms fully connected to one another, but with sidechain atoms only 
+    connected fully to other atoms within their, or adjacent, amino acids.
+
+    Parameters:
+    ----------
+    ...
+    '''
+
+    def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, g_t: LossCoeff, 
+                 l_gyration: GyrationLossHandler, with_dlogp: bool=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.w_t = w_t
+        self.l_cyclic = l_cyclic # perhaps enforce some guarentees about this being on the gpu?
+
+        self.g_t = g_t
+        self.l_gyration = l_gyration
+
+        self.l_total = GyrationCyclicLossHandler(l_cyclic= l_cyclic, l_gyration=l_gyration, gamma=g_t)
+        
+        self.with_dlogp = with_dlogp
+       #self._cyclic_counter = 0 # TODO: REMOVE THIS?
+            
+    def forward(self, t, xs): # modified by Ben... TODO: FINISH/FIX THIS...
+        """
+        Forward pass with cyclic loss incorporated.
+
+        Args:
+            t (float): Time, between 0 and 1.
+            xs (torch.Tensor): Atomic positions of shape (batch_size, n_particles * n_dimensions).
+
+        Returns:
+            torch.Tensor: Updated velocities with cyclic loss included, of the same shape as `xs`.
+        """
+        #print(t)
+        #print(isinstance(t, float))
+
+        n_batch = xs.shape[0]
+        
+        vel = super().forward(t, xs)
+
+        total_loss = self.l_total(positions = xs.view(n_batch, self._n_particles, self._n_dimension), t = t)
+
+        grad_conditional = torch.autograd.grad(
+            total_loss, xs, grad_outputs=torch.ones_like(total_loss), create_graph=True
+            )[0].view(n_batch, self._n_particles* self._n_dimension)
+
+        # Scale cyclic loss gradient by w_t(t)
+        loss_coeff = self.w_t(t)
+
+        # Add the scaled gradient to the velocity
+        vel = (1 - loss_coeff) * vel + loss_coeff * grad_conditional
+
+        # Reshape velocity back to the original format
+        vel = vel.view(n_batch, self._n_particles * self._n_dimension)
+        vel = remove_mean(vel) # Center the CoM
+
+       # self._cyclic_counter += 1
+        return vel.view(n_batch,  self._n_particles* self._n_dimension) # does this make sense?
