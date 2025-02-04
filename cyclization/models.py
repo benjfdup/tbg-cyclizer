@@ -13,13 +13,13 @@ from tbg.cyclization.LossHandler import GyrationCyclicLossHandler, CyclicLossHan
 ######################################################################
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # conditioned on time
-    def __init__(self, *args, pdb_file: str= None, device: torch.device= None, **kwargs):
+    def __init__(self, *args, pdb_file: str= None, device: torch.device= None, condition_time: bool = True, **kwargs):
         self.counter = 0
         self._custom_adj_matrix = None
 
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, condition_time = condition_time, **kwargs)
         self.pdb_file = pdb_file
         if pdb_file:
             # Generate a custom adjacency matrix from the PDB file
@@ -75,8 +75,9 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         representing the loss coefficient [torch.Tensor, shape (n_batch, )].
     '''
 
-    def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, with_dlogp: bool=True, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, 
+                 condition_time: bool = True, with_dlogp: bool=True, **kwargs):
+        super().__init__(*args, condition_time = condition_time, **kwargs)
         
         self.w_t = w_t
         self.l_cyclic = l_cyclic # perhaps enforce some guarentees about this being on the gpu?
@@ -137,8 +138,8 @@ class EGNN_dynamics_AD2_cat_pruned_conditioned(EGNN_dynamics_AD2_cat_bb_all_sc_a
     '''
 
     def __init__(self, *args, w_t: LossCoeff, l_cyclic: CyclicLossHandler, g_t: LossCoeff, 
-                 l_gyration: GyrationLossHandler, with_dlogp: bool=True, **kwargs):
-        super().__init__(*args, **kwargs)
+                 l_gyration: GyrationLossHandler, condition_time: bool = True, with_dlogp: bool=True, **kwargs):
+        super().__init__(*args, condition_time = condition_time, **kwargs)
         
         self.w_t = w_t
         self.l_cyclic = l_cyclic # perhaps enforce some guarentees about this being on the gpu?
