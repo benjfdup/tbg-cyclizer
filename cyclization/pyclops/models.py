@@ -1,16 +1,118 @@
+import importlib
+import sys
+
 import torch
 
-from tbg.models2 import EGNN_dynamics_AD2_cat
+# Path to tbg package
+tbg_spec = importlib.util.spec_from_file_location(
+    "tbg", "/home/bfd21/rds/hpc-work/tbg/tbg/__init__.py"
+)
+tbg = importlib.util.module_from_spec(tbg_spec)
+tbg_spec.loader.exec_module(tbg)
+
+# Manually register the tbg package so that normal imports work
+sys.modules["tbg"] = tbg
+
+from tbg.models2 import EGNN
 from tbg.utils import remove_mean
 
-from utils.utils import generate_bb_all_sc_adjacent_from_pdb
-from losses.LossCoeff import LossCoeff
-from losses.LossHandler import GyrationCyclicLossHandler, CyclicLossHandler, GyrationLossHandler
+from pyclops.utils.utils import generate_bb_all_sc_adjacent_from_pdb
+from pyclops.losses.LossCoeff import LossCoeff
+from pyclops.losses.LossHandler import GyrationCyclicLossHandler, CyclicLossHandler, GyrationLossHandler
 
 ######################################################################
 # vv Training Classes vv
 # Classes with custom graph pruning which are good to do training on
 ######################################################################
+
+class EGNN_dynamics_AD2_cat(torch.nn.Module):
+    def __init__(self, n_particles, n_dimension,h_initial, hidden_nf=64, device='cpu',
+            act_fn=torch.nn.SiLU(), n_layers=4, recurrent=True, attention=False,
+                 condition_time=True, tanh=False, mode='egnn_dynamics', agg='sum'):
+        super().__init__()
+        self.mode = mode
+        # Initial one hot encoding of the different element types
+        self.h_initial = h_initial
+
+        if mode == 'egnn_dynamics':
+            h_size = h_initial.size(1)
+            if condition_time:
+                h_size += 1
+            
+            self.egnn = EGNN(in_node_nf=h_size, in_edge_nf=1, hidden_nf=hidden_nf, device=device, act_fn=act_fn, n_layers=n_layers, recurrent=recurrent, attention=attention, tanh=tanh, agg=agg)
+        else:
+            raise NotImplemented()
+
+        self.device = device
+        self._n_particles = n_particles
+        self._n_dimension = n_dimension
+        self.edges = self._create_edges()
+        self._edges_dict = {}
+        self.condition_time = condition_time
+        # Count function calls
+        self.counter = 0
+        
+
+    def forward(self, t, xs):
+
+        n_batch = xs.shape[0]
+        edges = self._cast_edges2batch(self.edges, n_batch, self._n_particles)
+        edges = [edges[0], edges[1]]
+        #Changed by Leon
+        x = xs.reshape(n_batch*self._n_particles, self._n_dimension).clone()
+        h = self.h_initial.to(self.device).reshape(1,-1)
+        h = h.repeat(n_batch, 1)
+        h = h.reshape(n_batch*self._n_particles, -1)
+        # node compatability
+        # print(t.shape)
+        t = torch.tensor(t).to(xs)
+        if t.shape != (n_batch,1):
+            t = t.repeat(n_batch)
+        t = t.repeat(1, self._n_particles)
+        t = t.reshape(n_batch*self._n_particles, 1)
+        #print(t.shape, h.shape)
+        #print(t)
+        if self.condition_time:
+            h = torch.cat([h, t], dim=-1)
+        else:
+            h = h.float()
+        if self.mode == 'egnn_dynamics':
+            edge_attr = torch.sum((x[edges[0]] - x[edges[1]])**2, dim=1, keepdim=True)
+            _, x_final = self.egnn(h, x, edges, edge_attr=edge_attr)
+            vel = x_final - x
+
+        else:
+            raise NotImplemented()
+            
+        vel = vel.view(n_batch, self._n_particles, self._n_dimension)
+        vel = remove_mean(vel)
+        #print(t, xs)
+        self.counter += 1
+        return vel.view(n_batch,  self._n_particles* self._n_dimension)
+
+    def _create_edges(self):
+        rows, cols = [], []
+        for i in range(self._n_particles):
+            for j in range(i + 1, self._n_particles):
+                rows.append(i)
+                cols.append(j)
+                rows.append(j)
+                cols.append(i)
+        return [torch.LongTensor(rows), torch.LongTensor(cols)]
+
+    def _cast_edges2batch(self, edges, n_batch, n_nodes):
+        if n_batch not in self._edges_dict:
+            self._edges_dict = {}
+            rows, cols = edges
+            rows_total, cols_total = [], []
+            for i in range(n_batch):
+                rows_total.append(rows + i * n_nodes)
+                cols_total.append(cols + i * n_nodes)
+            rows_total = torch.cat(rows_total).to(self.device)
+            cols_total = torch.cat(cols_total).to(self.device)
+
+            self._edges_dict[n_batch] = [rows_total, cols_total]
+        return self._edges_dict[n_batch]
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # conditioned on time
     def __init__(self, *args, pdb_file: str= None, device: torch.device= None, condition_time: bool = True, **kwargs):

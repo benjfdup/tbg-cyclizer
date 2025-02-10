@@ -4,9 +4,9 @@ from typing import Type, Set, Dict
 import torch
 import mdtraj as md
 
-import tbg.cyclization.losses.ChemicalLoss as cl
-from tbg.cyclization.utils.utils import soft_min
-from tbg.cyclization.losses.LossCoeff import LossCoeff
+import pyclops.losses.ChemicalLoss as cl
+from pyclops.utils.utils import soft_min
+from pyclops.losses.LossCoeff import LossCoeff
 
 class LossHandler(ABC):
     @abstractmethod
@@ -58,7 +58,7 @@ class CyclicLossHandler(LossHandler):
         return self._alpha
     
     @property
-    def losses(self) -> list[cl.ChemicalLoss]:
+    def losses(self) -> list:
         return self._losses
     
     @property
@@ -134,7 +134,7 @@ class CyclicLossHandler(LossHandler):
         
         return soft_min(batched_losses) # [n_batches, ]
     
-    def get_smallest_loss(self, positions: torch.Tensor) -> list[cl.ChemicalLoss]:
+    def get_smallest_loss(self, positions: torch.Tensor) -> list:
         batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
 
         min_indexes = torch.argmin(batched_losses, dim= 1) # [n_batches, ]
@@ -144,7 +144,7 @@ class CyclicLossHandler(LossHandler):
         
         return smallest_losses # len= n_batches
     
-    def get_smallest_loss_methods(self, positions: torch.Tensor) -> list[str]:
+    def get_smallest_loss_methods(self, positions: torch.Tensor) -> list:
         loss_list = self.get_smallest_loss(positions)
         smallest_loss_methods = [loss.method for loss in loss_list]
 
@@ -201,7 +201,7 @@ class GyrationCyclicLossHandler(LossHandler):
         return self.l_cyclic._alpha
     
     @property
-    def losses(self) -> list[cl.ChemicalLoss]:
+    def losses(self) -> list:
         return self.l_cyclic._losses
     
     @property
@@ -233,10 +233,10 @@ class GyrationCyclicLossHandler(LossHandler):
         return self.l_cyclic.topology
     # getters ^^^
 
-    def get_smallest_loss(self, positions: torch.Tensor) -> list[cl.ChemicalLoss]:
+    def get_smallest_loss(self, positions: torch.Tensor) -> list:
         return self.l_cyclic.get_smallest_loss(positions)
     
-    def get_smallest_loss_methods(self, positions: torch.Tensor) -> list[str]:
+    def get_smallest_loss_methods(self, positions: torch.Tensor) -> list:
         return self.l_cyclic.get_smallest_loss_methods(positions)
         
     def eval_smallest_loss(self, positions: torch.Tensor) -> torch.Tensor:

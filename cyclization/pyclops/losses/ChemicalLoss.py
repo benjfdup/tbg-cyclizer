@@ -1,13 +1,13 @@
 ### Imports ###
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractclassmethod, abstractmethod
 from typing import Dict
 from math import pi
 
 import torch
 import mdtraj as md
 
-from tbg.cyclization.utils.utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
-from tbg.cyclization.utils.IndexesMethodPair import IndexesMethodPair
+from pyclops.utils.utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
+from pyclops.utils.IndexesMethodPair import IndexesMethodPair
 
 ######################################################################
 # This class is a blueprint for all possible chemical losses.
@@ -187,9 +187,8 @@ class ChemicalLoss(metaclass=ABCMeta):
         '''
         pass
 
-    @abstractmethod
-    @classmethod
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+    @abstractclassmethod
+    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> list:
         '''
         Returns a list of tuples, each of which denote an indexes, method str pair; this can then be used
         the losses __init__ method to initialize an instance of this subclass of ChemicalLoss
@@ -327,7 +326,7 @@ class DisulfideLoss(ChemicalLoss):
     
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
     @classmethod
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> list:
 
         indexes_method_pairs_list = []
 
@@ -438,7 +437,7 @@ class H2TAmideLoss(Amine2CTerminal):
     
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
     @classmethod
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> list:
 
         indexes_method_pairs_list = []
         
@@ -475,7 +474,7 @@ class Lysine2CTerminalLoss(AmideAbstractLoss): # try to find strategies in the l
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
     @classmethod
     def get_indexes_and_methods(cls, traj: md.Trajectory, 
-                                atom_indexes_dict: Dict[(int, str), int]) -> list[IndexesMethodPair]:
+                                atom_indexes_dict: Dict) -> list:
 
         indexes_method_pairs_list = []
         
