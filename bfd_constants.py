@@ -56,27 +56,9 @@ atom_types_ecoding = {
     'OXT': 51, 
     'SD': 52, 
     'SG': 53,
-    'CL1': 54, # This is chlorine. Idk... Feels like a hacky solution. Remove likely.
-    'CH3': 55, # CH3 group... Below & here is for the special case of the N-Cap2
-    'C1': 56,
-    'C2': 57,
-    'C3': 58,
-    'C4': 59,
-    'C5': 60,
-    'C6': 61,
-    'C7': 62,
-    'C8': 63,
-    'H2': 64,
-    'H4': 65,
-    'H5': 66,
-    'H6': 67,
-    'H7': 68,
-    'H71': 69,
-    'H8': 70,
-    'H81': 71,
-    'H82': 72,
-    'S1': 73,
-    'S2': 74,
+
+    # below is for the special case of the l1 peptide.
+    'CL1': 54,
     }
 
 amino_dict = {
@@ -100,8 +82,9 @@ amino_dict = {
     "TRP": 17,
     "TYR": 18,
     "VAL": 19,
-    "UNK": 20, # need to have a better way of handling this in the future...
-    "ACE": 21, # need to have a better way of handling this in the future...
-    "BEN": 22, # bis thioether cross linker. Will need to actually account for this in my cyclization code.
+
+    # below is for the special case of the l1 peptide.
+    "DPR": 20,
+    "CTR": 21,
 }
 

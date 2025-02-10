@@ -1,4 +1,5 @@
 ### INSERT PHYSICAL QUANTITIES HERE, AS WELL AS RELEVANT SCALE FACTORS ###
+scaling_factor = 30 # the factor of scaling in question. Will need to account for this, l8r
 
 atom_types_ecoding = {
     'C': 0, 
@@ -55,25 +56,9 @@ atom_types_ecoding = {
     'OXT': 51, 
     'SD': 52, 
     'SG': 53,
-    'C1': 56,
-    'C2': 57,
-    'C3': 58,
-    'C4': 59,
-    'C5': 60,
-    'C6': 61,
-    'C7': 62,
-    'C8': 63,
-    'H2': 64,
-    'H4': 65,
-    'H5': 66,
-    'H6': 67,
-    'H7': 68,
-    'H71': 69,
-    'H8': 70,
-    'H81': 71,
-    'H82': 72,
-    'S1': 73,
-    'S2': 74,
+
+    # below is for the special case of the l1 peptide.
+    'CL1': 54,
     }
 
 amino_dict = {
@@ -97,5 +82,9 @@ amino_dict = {
     "TRP": 17,
     "TYR": 18,
     "VAL": 19,
+
+    # below is for the special case of the l1 peptide.
+    "DPR": 20,
+    "CTR": 21,
 }
 
