@@ -6,8 +6,8 @@ from math import pi
 import torch
 import mdtraj as md
 
-from utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
-from IndexesMethodPair import IndexesMethodPair
+from tbg.cyclization.utils.utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
+from tbg.cyclization.utils.IndexesMethodPair import IndexesMethodPair
 
 ######################################################################
 # This class is a blueprint for all possible chemical losses.

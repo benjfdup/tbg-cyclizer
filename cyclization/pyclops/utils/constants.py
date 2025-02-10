@@ -1,6 +1,3 @@
-### INSERT PHYSICAL QUANTITIES HERE, AS WELL AS RELEVANT SCALE FACTORS ###
-scaling_factor = 30 # the factor of scaling in question. Will need to account for this, l8r
-
 atom_types_ecoding = {
     'C': 0, 
     'CA': 1, 

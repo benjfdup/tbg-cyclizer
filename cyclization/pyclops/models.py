@@ -3,9 +3,9 @@ import torch
 from tbg.models2 import EGNN_dynamics_AD2_cat
 from tbg.utils import remove_mean
 
-from utils import generate_bb_all_sc_adjacent_from_pdb
-from LossCoeff import LossCoeff
-from tbg.cyclization.LossHandler import GyrationCyclicLossHandler, CyclicLossHandler, GyrationLossHandler
+from utils.utils import generate_bb_all_sc_adjacent_from_pdb
+from losses.LossCoeff import LossCoeff
+from losses.LossHandler import GyrationCyclicLossHandler, CyclicLossHandler, GyrationLossHandler
 
 ######################################################################
 # vv Training Classes vv

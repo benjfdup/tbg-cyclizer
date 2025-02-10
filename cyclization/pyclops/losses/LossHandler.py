@@ -4,9 +4,9 @@ from typing import Type, Set, Dict
 import torch
 import mdtraj as md
 
-import ChemicalLoss as cl
-from utils import soft_min
-from LossCoeff import LossCoeff
+import tbg.cyclization.losses.ChemicalLoss as cl
+from tbg.cyclization.utils.utils import soft_min
+from tbg.cyclization.losses.LossCoeff import LossCoeff
 
 class LossHandler(ABC):
     @abstractmethod
@@ -172,10 +172,14 @@ class GyrationLossHandler(LossHandler):
         mean_squared_distance = torch.mean(squared_distances, dim=1)  # [n_batch]
         
         # Step 4: Return either the squared radius of gyration or its square root
-        if self._squared:
+        if self.squared:
             return mean_squared_distance  # Return R_g^2
         else:
             return torch.sqrt(mean_squared_distance)  # Return R_g
+    
+    @property
+    def squared(self) -> bool:
+        return self._squared
         
 class GyrationCyclicLossHandler(LossHandler):
     def __init__(self, l_cyclic: CyclicLossHandler, l_gyr: GyrationLossHandler, gamma: LossCoeff):
