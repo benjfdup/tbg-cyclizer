@@ -25,6 +25,7 @@ from pyclops.losses.LossHandler import GyrationCyclicLossHandler, CyclicLossHand
 # Classes with custom graph pruning which are good to do training on
 ######################################################################
 
+# vv from TBG paper (slight bug fixed) vv #
 class EGNN_dynamics_AD2_cat(torch.nn.Module):
     def __init__(self, n_particles, n_dimension,h_initial, hidden_nf=64, device='cpu',
             act_fn=torch.nn.SiLU(), n_layers=4, recurrent=True, attention=False,
@@ -123,6 +124,7 @@ class EGNN_dynamics_AD2_cat(torch.nn.Module):
 
             self._edges_dict[n_batch] = [rows_total, cols_total]
         return self._edges_dict[n_batch]
+# ^^ from TBG paper, slight bug fixed ^^
 
 class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # conditioned on time
     def __init__(self, *args, pdb_file: str= None, device: torch.device= None, condition_time: bool = True, **kwargs):
