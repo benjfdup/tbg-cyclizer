@@ -19,7 +19,6 @@ class LossHandler(ABC):
         pass
 
 class CyclicLossHandler(LossHandler):
-
     bonding_atoms = {"SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", }
     
     def __init__(self, pdb_path: str, 
@@ -170,8 +169,12 @@ class CyclicLossHandler(LossHandler):
 class GyrationLossHandler(LossHandler):
     def __init__(self, squared: bool = False):
         self._squared = squared
+    
+    @property
+    def squared(self) -> bool:
+        return self._squared
 
-    def __call__(self, positions: torch.Tensor):
+    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
         # positions: [n_batch, n_atoms, 3]
         
         # Step 1: Compute the center of mass (mean position) for each batch
@@ -181,17 +184,17 @@ class GyrationLossHandler(LossHandler):
         squared_distances = torch.sum((positions - center_of_mass) ** 2, dim=-1)  # [n_batch, n_atoms]
         
         # Step 3: Compute the mean squared distance for each batch
-        mean_squared_distance = torch.mean(squared_distances, dim=1)  # [n_batch]
+        mean_squared_distance = torch.mean(squared_distances, dim=-1)  # [n_batch, ]
+
+        val = torch.zeros_like(mean_squared_distance)
         
         # Step 4: Return either the squared radius of gyration or its square root
         if self.squared:
-            return mean_squared_distance  # Return R_g^2
+            val = mean_squared_distance  # Return R_g^2
         else:
-            return torch.sqrt(mean_squared_distance)  # Return R_g
-    
-    @property
-    def squared(self) -> bool:
-        return self._squared
+            val = torch.sqrt(mean_squared_distance)  # Return R_g
+        
+        return val # [n_batch, ]
         
 class GyrationCyclicLossHandler(LossHandler):
     def __init__(self, l_cyclic: CyclicLossHandler, l_gyr: GyrationLossHandler, gamma: LossCoeff):
@@ -257,4 +260,7 @@ class GyrationCyclicLossHandler(LossHandler):
     def __call__(self, positions: torch.Tensor, t: torch.Tensor):
         g_t = self.gamma(t) # [batch_size, ]
 
-        return g_t * self.l_gyr(positions = positions) + (1 - g_t) * self.l_cyclic(positions = positions)
+        l_gyr = self.l_gyr(positions = positions) # [batch_size, ]
+        l_cyc = self.l_cyclic(positions = positions) # [batch_size, ]
+
+        return g_t * l_gyr + (1 - g_t) * l_cyc
