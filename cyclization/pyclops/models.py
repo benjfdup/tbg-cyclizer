@@ -39,7 +39,17 @@ class EGNN_dynamics_AD2_cat(torch.nn.Module):
             if condition_time:
                 h_size += 1
             
-            self.egnn = EGNN(in_node_nf=h_size, in_edge_nf=1, hidden_nf=hidden_nf, device=device, act_fn=act_fn, n_layers=n_layers, recurrent=recurrent, attention=attention, tanh=tanh, agg=agg)
+            self.egnn = EGNN(in_node_nf=h_size, 
+                             in_edge_nf=1, 
+                             hidden_nf=hidden_nf, 
+                             device=device, 
+                             act_fn=act_fn, 
+                             n_layers=n_layers, 
+                             recurrent=recurrent, 
+                             attention=attention, 
+                             tanh=tanh, 
+                             agg=agg,
+                             )
         else:
             raise NotImplemented()
 
@@ -52,7 +62,7 @@ class EGNN_dynamics_AD2_cat(torch.nn.Module):
         # Count function calls
         self.counter = 0
         
-
+    # confused on how t works... but ok?
     def forward(self, t, xs):
 
         n_batch = xs.shape[0]
@@ -118,18 +128,25 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(EGNN_dynamics_AD2_cat): # conditi
     def __init__(self, *args, pdb_file: str= None, device: torch.device= None, condition_time: bool = True, **kwargs):
         self.counter = 0
         self._custom_adj_matrix = None
-
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        super().__init__(*args, condition_time = condition_time, **kwargs)
+        # Remove subclass-specific arguments from kwargs before passing to super()
+        pdb_file = kwargs.pop('pdb_file', pdb_file)
+        condition_time = kwargs.pop('condition_time', condition_time)
+
+        # Call the superclass constructor with filtered kwargs
+        super().__init__(*args, device=self.device, condition_time=condition_time, **kwargs)
+
+        # Handle subclass-specific logic
         self.pdb_file = pdb_file
+
         if pdb_file:
             # Generate a custom adjacency matrix from the PDB file
             edge_tensor = generate_bb_all_sc_adjacent_from_pdb(pdb_file)
             self._custom_adj_matrix = edge_tensor
             self.edges = edge_tensor.to(self.device)
         else:
-            self.edges = super()._create_edges()
+            raise NotImplemented()
 
         # Initialize self.edges after the subclass attributes are set
         #self.edges = self._create_edges()
