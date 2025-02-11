@@ -10,7 +10,7 @@ from pyclops.losses.LossCoeff import LossCoeff
 
 class LossHandler(ABC):
     @abstractmethod
-    def __call__(self, positions: torch.Tensor, *args, **kwargs):
+    def __call__(self, positions: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         '''
         A method which calculates a loss for the atom positions in a given generated peptide.
 
