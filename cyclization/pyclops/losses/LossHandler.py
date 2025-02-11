@@ -106,8 +106,8 @@ class CyclicLossHandler(LossHandler):
     
     def _initialize_losses(self):
         traj = self.traj
-        atom_indexes_dict = CyclicLossHandler.precompute_atom_indices(list(self.topology.residues),
-                                                                     CyclicLossHandler.bonding_atoms) 
+        atom_indexes_dict = CyclicLossHandler.precompute_atom_indices(list(self.topology.residues), 
+                                                                      CyclicLossHandler.bonding_atoms) 
         # not optimal, but only run once, so I dont think its so worth redoing all of this.
         losses = []
         
@@ -130,9 +130,21 @@ class CyclicLossHandler(LossHandler):
         return losses
 
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
-        batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
+        '''
+        Args:
+        ----
+        positions: torch.Tensor [batch_size, n_atoms, 3]
+            a torch.Tensor denoting atom positions cross batch
         
-        return soft_min(batched_losses) # [n_batches, ]
+        Returns:
+        -------
+        loss: torch.Tensor [batch_size, ]
+            the cyclic loss of each batch
+        '''
+        batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
+        loss = soft_min(batched_losses) # [n_batches, ]
+        
+        return loss
     
     def get_smallest_loss(self, positions: torch.Tensor) -> list:
         batched_losses = torch.stack([loss(positions) for loss in self.losses], dim=1).squeeze() # [n_batches, n_losses]
@@ -242,7 +254,7 @@ class GyrationCyclicLossHandler(LossHandler):
     def eval_smallest_loss(self, positions: torch.Tensor) -> torch.Tensor:
         return self.l_cyclic.eval_smallest_loss(positions)
     
-    def __call__(self, positions: torch.Tensor, t: float):
-        g_t = self.gamma(t)
+    def __call__(self, positions: torch.Tensor, t: torch.Tensor):
+        g_t = self.gamma(t) # [batch_size, ]
 
         return g_t * self.l_gyr(positions = positions) + (1 - g_t) * self.l_cyclic(positions = positions)
