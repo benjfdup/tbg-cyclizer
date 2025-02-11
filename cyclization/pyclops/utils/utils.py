@@ -1,6 +1,9 @@
 # batch-friendly loss building blocks
 import torch
 import mdtraj as md
+import math
+
+pi = math.pi
 
 def sq_distance(a1: torch.Tensor, a2: torch.Tensor) -> torch.Tensor:
     """
@@ -17,6 +20,28 @@ def sq_distance(a1: torch.Tensor, a2: torch.Tensor) -> torch.Tensor:
     
     return result
 
+def abs_angle_distance(t0: torch.Tensor, t1: torch.Tensor):
+    '''
+    Parameters:
+    ----------
+    t0: torch.Tensor
+        a tensor of shape [batch_size, ] denoting the angles you want to compute the abs angle 
+        distance of. Must be in radians.
+    t1: torch.Tensor, or float
+        a tensor of shape [batch_size, ] or float, denoting the angles you want to compute the 
+        t0 angular distance relative to. Must be in radians
+        
+    Returns:
+    -------
+    loss: torch.Tensor
+        a tensor of shape [batch_size, ] denoting the absolute angle "distance" of the angle tensors.
+    '''
+
+    # Compute the wrapped angular difference in the range [-pi, pi]
+    angle_diff = torch.abs(((t0 - t1 + pi) % (2 * pi)) - pi)
+    
+    return angle_diff
+
 def bond_angle(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor) -> torch.Tensor:
     """
     Compute bond angles for batches of points.
@@ -31,7 +56,8 @@ def bond_angle(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor) -> torch.Te
 
     Returns:
     -------
-    torch.Tensor: Bond angles of shape (batch_size, ), in radians.
+    result: torch.Tensor
+        Bond angles of shape (batch_size, ), in radians.
     """
     
     v1 = a1 - a2 # position of a1 relative to a2
@@ -126,15 +152,16 @@ def bond_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor,
     Returns:
     torch.Tensor: Losses of shape (batch_size).
     """
+
+    assert tolerance < pi, 'tolerance must be less than pi.'
+
     b_angle = bond_angle(a1, a2, a3)
-    error = torch.abs(b_angle - target_angle)
+    abs_error = abs_angle_distance(b_angle, target_angle) # [batch_size, ]
     
     # Apply tolerance
-    penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
+    penalty = torch.where(abs_error <= tolerance, torch.zeros_like(abs_error), (abs_error - tolerance) ** 2)
 
-    result = penalty
-
-    return result
+    return penalty
 
 def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4: torch.Tensor, 
                         target_angle: float, tolerance: float= 0.0) -> torch.Tensor: # make sure to fix "loop" around problem, and allow for planarity!
@@ -152,14 +179,12 @@ def dihedral_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, a4
     torch.Tensor: Losses of shape (batch_size, ).
     """
     d_angle = dihedral_angle(a1, a2, a3, a4)
-    error = torch.abs(d_angle - target_angle)
+    abs_error = abs_angle_distance(d_angle, target_angle) # [batch_size, ]
     
     # Apply tolerance
-    penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
+    penalty = torch.where(abs_error <= tolerance, torch.zeros_like(abs_error), (abs_error - tolerance) ** 2)
 
-    result = penalty
-
-    return result # [batch_size, ]
+    return penalty
 
 def motif_absolute(*argv, target_structure): ### TODO: IMPLEMENT THIS
     """

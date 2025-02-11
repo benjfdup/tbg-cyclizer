@@ -1,4 +1,7 @@
 ### IMPORTS & SETUP ###
+import importlib
+import sys
+
 import torch
 import numpy as np
 import mdtraj as md
@@ -11,7 +14,20 @@ from bgflow import (
     MeanFreeNormalDistribution,
 )
 
-from tbg.models2 import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent # TODO: UPDATE
+import importlib.util
+
+## Load pyclops dynamically
+pyclops_spec = importlib.util.spec_from_file_location(
+    "pyclops", "/home/bfd21/rds/hpc-work/tbg/cyclization/pyclops/__init__.py"
+)
+pyclops = importlib.util.module_from_spec(pyclops_spec)
+pyclops_spec.loader.exec_module(pyclops)
+
+# Manually register the pyclops package so Python can find it
+sys.modules["pyclops"] = pyclops
+
+
+from pyclops.models import EGNN_dynamics_AD2_cat_bb_all_sc_adjacent
 from bgflow import BlackBoxDynamics, BruteForceEstimator
 
 import time
@@ -19,19 +35,19 @@ from tqdm import tqdm
 from loguru import logger
 import wandb
 
-from bfd_conditionals import amino_dict, atom_types_ecoding # TODO: UPDATE
+from pyclops.utils.constants import atom_types_ecoding, amino_dict
 import os
 import gc
 
 ### THINGS TO CHANGE vvv
-log_dir = "/home/bfd21/rds/hpc-work/tbg/jobs/job-Dec-17" # where to store the training logs. Dont include slash at end
-proj_name = "bb_all_sc_adj_N-Cap2"
+log_dir = "/home/bfd21/rds/hpc-work/tbg/cyclization/jobs/l1-train-Feb-10" # where to store the training logs. Dont include slash at end
+proj_name = "l1-train-no-cond-on-time"
 
-pdb_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/system.pdb"
-data_path = "/home/bfd21/rds/hpc-work/sample_macrocycle_md/N-Cap2/processed_train.npy"
+pdb_path = "/home/bfd21/rds/hpc-work/data/MDM2-sample-binders/ligand-only/l1/ligand1.pdb"
+data_path = "/home/bfd21/rds/hpc-work/data/MDM2-sample-binders/ligand-only/l1/splits/l1_train.npy"
 
 # where to save the new model/load a previous model
-PATH_last = "/home/bfd21/rds/hpc-work/tbg/bfd_models/Dec-17-2024/N-Cap2_bb_all_sc_adj.pth"
+PATH_last = "/home/bfd21/rds/hpc-work/data/MDM2-sample-binders/ligand-only/l1/models/l1-no-cond-on-time.pth"
 
 n_batch = 256 # batch size to be used. If runs out of memory, reduce this.
 n_epochs = 100
@@ -100,7 +116,7 @@ brute_force_estimator = BruteForceEstimator()
 net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
     pdb_file=pdb_path,
     n_particles=n_particles,
-    device="cuda",
+    device=torch.device('cuda'),
     n_dimension=dim // n_particles,
     h_initial=h_initial,
     hidden_nf=64,
@@ -109,7 +125,7 @@ net_dynamics = EGNN_dynamics_AD2_cat_bb_all_sc_adjacent(
     recurrent=True,
     tanh=True,
     attention=True,
-    condition_time=True,
+    condition_time=False, # should be false
     mode="egnn_dynamics",
     agg="sum",
 )
@@ -203,7 +219,7 @@ for epoch in tqdm(range(n_epochs), desc="Epoch Progress", unit="epoch"):
 
         epoch_loss += loss.item()
     
-    if epoch % 20 == 0 or epoch == n_epochs - 1:
+    if epoch % 10 == 0 or epoch == n_epochs - 1:
         print(epoch)
 
         avg_loss = epoch_loss / len(batch_iter)
