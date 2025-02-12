@@ -93,7 +93,7 @@ class EGNN_dynamics_AD2_cat(torch.nn.Module):
             vel = x_final - x
 
         else:
-            raise NotImplemented()
+            raise NotImplementedError()
             
         vel = vel.view(n_batch, self._n_particles, self._n_dimension)
         vel = remove_mean(vel)
@@ -268,7 +268,7 @@ class EGNN_dynamics_AD2_cat_pruned_conditioned(EGNN_dynamics_AD2_cat_bb_all_sc_a
         self.g_t = g_t
         self.l_gyration = l_gyration
 
-        self.l_total = GyrationCyclicLossHandler(l_cyclic= l_cyclic, l_gyration=l_gyration, gamma=g_t)
+        self.l_total = GyrationCyclicLossHandler(l_cyclic= l_cyclic, l_gyr=l_gyration, gamma=g_t)
         
         self.with_dlogp = with_dlogp
        #self._cyclic_counter = 0 # TODO: REMOVE THIS?

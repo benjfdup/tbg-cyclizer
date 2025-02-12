@@ -1,9 +1,10 @@
+from typing import Dict
+import mdtraj as md
 import torch
 
-from ChemicalLoss import AmideAbstractLoss, ChemicalLoss
+from pyclops.losses.ChemicalLoss import AmideAbstractLoss, ChemicalLoss
 from pyclops.utils.utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
 from pyclops.utils.IndexesMethodPair import IndexesMethodPair
-import mdtraj as md
 
 # the below losses are exclusively for the l1 sanity check.
 # ---------------------------------------------------------
@@ -15,6 +16,35 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
     indexes_keys = {'c', # proline carbonyl carbon
                     'phe_n', # phenylalanine N terminal nitrogen
                     }
+    
+    def __init__(self, method: str, indexes: Dict[str, int], 
+                 
+                 # defaults below #
+                 weights: Dict[str, float] = {'bond_lengths': 1.0, 'bond_angles': 0.0, 'dihedral_angles': 0.0},
+                 offsets: Dict[str, float] = {'bond_lengths': 0.0, 'bond_angles': 0.0, 'dihedral_angles': 0.0},
+                 use_bond_lengths: bool = True, 
+                 use_bond_angles: bool = True, 
+                 use_dihedrals: bool = True,
+                 
+                 bond_length_tolerance: float = 0.1, # get sources to support this
+                 bond_angle_tolerance: float = 0.0,  # get sources to support this
+                 dihedral_tolerance: float = 0.0, # best guess, 30 deg.
+
+                 device: torch.device = None
+                 ):
+        
+        '''
+        '''
+        
+        super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
+                         use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
+                         use_dihedrals= use_dihedrals,
+                         
+                         bond_length_tolerance= bond_length_tolerance, bond_angle_tolerance= bond_angle_tolerance, 
+                         dihedral_tolerance= dihedral_tolerance,
+
+                         device=device,
+                         )
     
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
         pos = positions

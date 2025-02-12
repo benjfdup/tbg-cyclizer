@@ -23,8 +23,15 @@ class ChemicalLoss(metaclass=ABCMeta):
 
     # Class-level attribute for required keys; subclasses can override this
     indexes_keys = set()
+
+    unit_scales = { # a dictionary of the factor needed to convert from input position units to angstroms
+        'A': 1.0,
+        'nm': 10.0,
+    }
     
-    def __init__(self, method: str, indexes: Dict[str, int], weights: Dict[str, float], 
+    def __init__(self,
+                 unit: str,
+                 method: str, indexes: Dict[str, int], weights: Dict[str, float], 
                  offsets: Dict[str, float], use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool,
                  
                  bond_length_tolerance: float = None, bond_angle_tolerance: float = None, 
@@ -37,6 +44,14 @@ class ChemicalLoss(metaclass=ABCMeta):
                 f"The indexes dictionary must contain exactly the keys: {self.indexes_keys}. " \
                 f"Received keys: {set(indexes.keys())}"
         
+        self._unit = unit
+
+        try:
+            self._unit_factor = self.unit_scales[unit]
+            # factor needed to convert atom positions to atom positions in angs.
+        except KeyError as e:
+            raise NotImplementedError('that unit is not implemented.')
+
         self._indexes = indexes
         self._weights = weights
         self._offsets = offsets
@@ -64,6 +79,13 @@ class ChemicalLoss(metaclass=ABCMeta):
         self._device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # getters vvv
+    @property
+    def unit(self) -> str:
+        '''
+        the units of the input atom positions.
+        '''
+        return self._unit
+
     @property
     def indexes(self) -> Dict[str, int]:
         '''
