@@ -6,6 +6,7 @@ import mdtraj as md
 
 import pyclops.losses.ChemicalLoss as cl
 from pyclops.utils.utils import soft_min
+from pyclops.utils.constants import unit_scales
 from pyclops.losses.LossCoeff import LossCoeff
 
 class LossHandler(ABC):
@@ -49,6 +50,9 @@ class CyclicLossHandler(LossHandler):
     # getters vvv
     @property
     def units(self) -> str:
+        '''
+        should only be used to be passed to the relevant chemical losses.
+        '''
         return self._units
 
     @property
@@ -176,15 +180,31 @@ class CyclicLossHandler(LossHandler):
         return torch.min(batched_losses, dim= 1)
 
 class GyrationLossHandler(LossHandler):
-    def __init__(self, squared: bool = False):
+    def __init__(self, units: str, 
+                 squared: bool = False):
         self._squared = squared
+        self._units = units
+
+        try:
+            self._units_factor = unit_scales[units]
+        except KeyError as e:
+            raise NotImplementedError('that unit is not implemented.')
+    
+    @property
+    def units(self) -> str:
+        return self._units
+    
+    @property
+    def units_factor(self) -> float:
+        return self._units_factor
     
     @property
     def squared(self) -> bool:
         return self._squared
 
-    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
-        # positions: [n_batch, n_atoms, 3]
+    def __call__(self, pos: torch.Tensor) -> torch.Tensor:
+        # pos: [n_batch, n_atoms, 3]
+        positions = pos * self.units_factor # converts to the correct units.
         
         # Step 1: Compute the center of mass (mean position) for each batch
         center_of_mass = torch.mean(positions, dim=1, keepdim=True)  # [n_batch, 1, 3]

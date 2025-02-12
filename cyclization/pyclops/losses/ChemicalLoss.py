@@ -7,6 +7,7 @@ import torch
 import mdtraj as md
 
 from pyclops.utils.utils import bond_angle_loss, dihedral_angle_loss, distance_loss, inherit_docstring
+from pyclops.utils.constants import unit_scales
 from pyclops.utils.IndexesMethodPair import IndexesMethodPair
 
 ######################################################################
@@ -24,10 +25,7 @@ class ChemicalLoss(metaclass=ABCMeta):
     # Class-level attribute for required keys; subclasses can override this
     indexes_keys = set()
 
-    unit_scales = { # a dictionary of the factor needed to convert from input position units to angstroms
-        'A': 1.0,
-        'nm': 10.0,
-    }
+    unit_scales = unit_scales
     
     def __init__(self,
                  units: str,
@@ -338,7 +336,7 @@ class DisulfideLoss(ChemicalLoss):
                          device=device,
                          )
 
-    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+    def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         pos = positions # should be of shap (n_batch, n_atoms, 3)
         sulfur_index_1 = self._indexes['s1'] # sulfur of first cysteine
         sulfur_index_2 = self._indexes['s2'] # sulfur of second cysteine
@@ -443,7 +441,7 @@ class Amine2CTerminal(AmideAbstractLoss, metaclass=ABCMeta): # TODO: put all ami
                     'h2', # amide hydrogen 2
                     }
 
-    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+    def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         pos = positions # should be of shape (n_batch, n_atoms, 3)
         carbonyl_carbon_index = self._indexes['c'] # carbonyl carbon
         oxygen_index = self._indexes['o'] # carbonyl oxygen

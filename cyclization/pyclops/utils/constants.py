@@ -85,3 +85,7 @@ amino_dict = {
     "CTR": 21,
 }
 
+unit_scales = { # a dictionary of the factor needed to convert from input position units to angstroms
+        'A': 1.0,
+        'nm': 10.0,
+        }
