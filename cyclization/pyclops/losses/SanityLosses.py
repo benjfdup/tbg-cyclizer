@@ -6,6 +6,7 @@ from pyclops.utils.IndexesMethodPair import IndexesMethodPair
 import mdtraj as md
 
 # the below losses are exclusively for the l1 sanity check.
+# ---------------------------------------------------------
 class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
     '''
     Loss to handle just the distance between the Proline C terminal and Phenylalanine N terminal.
@@ -46,56 +47,21 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
         indexes_method_pairs_list = []
 
         residue_list = list(traj.topology.residues)
-        cysteines = [r for r in residue_list if r.name == "CYS"]
+        prolines = [r for r in residue_list if r.name == "PRO"]
+        phens = [r for r in residue_list if r.name == "PHE"]
 
-        for i, cys_1 in enumerate(cysteines):
-            for cys_2 in cysteines[i + 1:]:  # Avoid duplicate pairs
-                sulfur_index_1 = atom_indexes_dict[(cys_1.index, 'SG')]
-                sulfur_index_2 = atom_indexes_dict[(cys_2.index, 'SG')]
-                beta_index_1 = atom_indexes_dict[(cys_1.index, "CB")]
-                beta_index_2 = atom_indexes_dict[(cys_2.index, "CB")]
+        for pro in prolines:
+            for phen in phens:
+                proline_carbonyl_carbon_idx = atom_indexes_dict[(pro.index, 'C')]
+                phen_amine_nitrogen_idx = atom_indexes_dict[(phen.index, 'N')]
+        
+            indexes_dict = {
+                'c': proline_carbonyl_carbon_idx,
+                'phe_n': phen_amine_nitrogen_idx,
+            }
 
-                indexes_dict= {
-                    's1': sulfur_index_1,
-                    's2': sulfur_index_2,
-                    'b1': beta_index_1,
-                    'b2': beta_index_2,
-                }
+            method_str = f'Amide, PHE (N) {phen.index} -> PRO (C) {pro.index}'
 
-                method_str = f'Disulfide, CYS {cys_1.index} -> CYS {cys_2.index}'
-
-                indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
-    
-        return indexes_method_pairs_list
-    
-
-
-    ### TEMPLATE ###
-    @inherit_docstring(ChemicalLoss.get_indexes_and_methods)
-    @classmethod
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: dict) -> list:
-
-        indexes_method_pairs_list = []
-
-        residue_list = list(traj.topology.residues)
-        cysteines = [r for r in residue_list if r.name == "CYS"]
-
-        for i, cys_1 in enumerate(cysteines):
-            for cys_2 in cysteines[i + 1:]:  # Avoid duplicate pairs
-                sulfur_index_1 = atom_indexes_dict[(cys_1.index, 'SG')]
-                sulfur_index_2 = atom_indexes_dict[(cys_2.index, 'SG')]
-                beta_index_1 = atom_indexes_dict[(cys_1.index, "CB")]
-                beta_index_2 = atom_indexes_dict[(cys_2.index, "CB")]
-
-                indexes_dict= {
-                    's1': sulfur_index_1,
-                    's2': sulfur_index_2,
-                    'b1': beta_index_1,
-                    'b2': beta_index_2,
-                }
-
-                method_str = f'Disulfide, CYS {cys_1.index} -> CYS {cys_2.index}'
-
-                indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
+            indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
     
         return indexes_method_pairs_list
