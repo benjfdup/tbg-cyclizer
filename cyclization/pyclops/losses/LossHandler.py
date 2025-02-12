@@ -231,52 +231,6 @@ class GyrationCyclicLossHandler(LossHandler):
         self.l_cyclic = l_cyclic
         self.l_gyr = l_gyr
     
-    # getters vvv
-    @property
-    def pdb_path(self) -> str:
-        return self.l_cyclic._pdb_path
-    
-    @property
-    def strategies(self) -> Set[Type[cl.ChemicalLoss]]:
-        return self.l_cyclic._strategies
-    
-    @property
-    def alpha(self) -> float:
-        return self.l_cyclic._alpha
-    
-    @property
-    def losses(self) -> list:
-        return self.l_cyclic._losses
-    
-    @property
-    def weights(self) -> Dict[str, float]:
-        return self.l_cyclic._weights
-    
-    @property
-    def offsets(self) -> Dict[str, float]:
-        return self.l_cyclic._offsets
-    
-    @property
-    def use_bond_lengths(self) -> bool:
-        return self.l_cyclic._use_bond_lengths
-    
-    @property
-    def use_bond_angles(self) -> bool:
-        return self.l_cyclic._use_bond_angles
-    
-    @property
-    def use_dihedrals(self) -> bool:
-        return self.l_cyclic._use_dihedrals
-
-    @property
-    def traj(self) -> md.Trajectory:
-        return self.l_cyclic.traj
-    
-    @property
-    def topology(self) -> md.Trajectory.topology:
-        return self.l_cyclic.topology
-    # getters ^^^
-
     def get_smallest_loss(self, positions: torch.Tensor) -> list:
         return self.l_cyclic.get_smallest_loss(positions)
     
