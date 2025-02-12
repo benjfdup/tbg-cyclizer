@@ -234,7 +234,7 @@ class EGNN_dynamics_AD2_cat_bb_all_sc_adj_cyclic(EGNN_dynamics_AD2_cat_bb_all_sc
         loss_coeff = self.w_t(t)
 
         # Add the scaled gradient to the velocity
-        vel = (1 - loss_coeff) * vel + loss_coeff * grad_cyclic
+        vel = (1 - loss_coeff) * vel - loss_coeff * grad_cyclic
 
         # Reshape velocity back to the original format
         vel = vel.view(n_batch, self._n_particles * self._n_dimension)
@@ -301,7 +301,7 @@ class EGNN_dynamics_AD2_cat_pruned_conditioned(EGNN_dynamics_AD2_cat_bb_all_sc_a
         loss_coeff = self.w_t(t)
 
         # Add the scaled gradient to the velocity
-        vel = (1 - loss_coeff) * vel + loss_coeff * grad_conditional
+        vel = (1 - loss_coeff) * vel - loss_coeff * grad_conditional
 
         # Reshape velocity back to the original format
         vel = vel.view(n_batch, self._n_particles * self._n_dimension)
