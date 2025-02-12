@@ -124,7 +124,9 @@ class CyclicLossHandler(LossHandler):
                 indexes = pair.indexes
                 method_str = pair.method
 
-                loss = strat(method=method_str, indexes=indexes,
+                loss = strat(
+                             units= self.units,
+                             method=method_str, indexes=indexes,
                              weights= self.weights, offsets= self.offsets,
                              use_bond_lengths= self.use_bond_lengths,
                              use_bond_angles= self.use_bond_angles,
