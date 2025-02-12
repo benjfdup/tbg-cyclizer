@@ -21,7 +21,9 @@ class LossHandler(ABC):
 class CyclicLossHandler(LossHandler):
     bonding_atoms = {"SG", "CB", "C", "CA", "N", "H", "NZ", "CE", "CG", "OG", "SD", "NE", "CD", }
     
-    def __init__(self, pdb_path: str, 
+    def __init__(self,
+                 units: str, 
+                 pdb_path: str, 
                 # add weights? add offsets? add use_bond_lengths, add use_bond_angles,
                 # add use_dihedrals?
                  strategies: Set[Type[cl.ChemicalLoss]] = {cl.DisulfideLoss, },
@@ -31,6 +33,7 @@ class CyclicLossHandler(LossHandler):
                  alpha: float= -3.0,
                  ):
         
+        self._units = units
         self._pdb_path = pdb_path
         self._strategies = strategies
         self._alpha = alpha
@@ -44,6 +47,10 @@ class CyclicLossHandler(LossHandler):
         self._losses = self._initialize_losses()
         
     # getters vvv
+    @property
+    def units(self) -> str:
+        return self._units
+
     @property
     def pdb_path(self) -> str:
         return self._pdb_path

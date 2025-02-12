@@ -1,6 +1,6 @@
 ### Imports ###
 from abc import ABCMeta, abstractclassmethod, abstractmethod
-from typing import Dict
+from typing import Dict, final
 from math import pi
 
 import torch
@@ -30,7 +30,7 @@ class ChemicalLoss(metaclass=ABCMeta):
     }
     
     def __init__(self,
-                 unit: str,
+                 units: str,
                  method: str, indexes: Dict[str, int], weights: Dict[str, float], 
                  offsets: Dict[str, float], use_bond_lengths: bool, use_bond_angles: bool, use_dihedrals: bool,
                  
@@ -44,10 +44,10 @@ class ChemicalLoss(metaclass=ABCMeta):
                 f"The indexes dictionary must contain exactly the keys: {self.indexes_keys}. " \
                 f"Received keys: {set(indexes.keys())}"
         
-        self._unit = unit
+        self._units = units
 
         try:
-            self._unit_factor = self.unit_scales[unit]
+            self._units_factor = self.unit_scales[units]
             # factor needed to convert atom positions to atom positions in angs.
         except KeyError as e:
             raise NotImplementedError('that unit is not implemented.')
@@ -80,11 +80,20 @@ class ChemicalLoss(metaclass=ABCMeta):
 
     # getters vvv
     @property
-    def unit(self) -> str:
+    def units(self) -> str:
         '''
         the units of the input atom positions.
         '''
-        return self._unit
+        return self._units
+    
+    @property
+    def units_factor(self) -> float:
+        '''
+        the factor to convert from atom position units to angstroms.
+        
+        for clarity: self.units_factor * positions = positions in angstroms
+        '''
+        return self._units_factor
 
     @property
     def indexes(self) -> Dict[str, int]:
@@ -199,15 +208,6 @@ class ChemicalLoss(metaclass=ABCMeta):
             total_loss += dihedral_losses * self.weights['dihedral_angles'] + self.offsets['dihedral_angles']
 
         return total_loss
-    
-    @abstractmethod
-    def __call__(self, positions: torch.Tensor):
-        '''
-        Evaluates the loss given all atoms positions of the chemically relevant atoms.
-        Relevant atom indexes are stored at self.indexes.
-        Positions should be of shape (batch_size, n_atoms, 3).
-        '''
-        pass
 
     @abstractclassmethod
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> list:
@@ -231,6 +231,46 @@ class ChemicalLoss(metaclass=ABCMeta):
             a list of IndexesMethodPair instances, each denoting an (atomic) indexes dict, method str pairing.
         '''
         pass
+    
+    @final
+    def _convert_positions(self, positions: torch.Tensor) -> torch.Tensor:
+        '''
+        converts the input positions from their input units to angstroms
+        '''
+
+        return positions * self._units_factor
+    
+    @abstractmethod
+    def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
+        '''
+        Private method of ChemicalLoss objects, which does the actual computation of that
+        particular chemical loss.
+
+        Args:
+        ----
+        positions: torch.Tensor [batch_size, n_atoms, 3]
+            tensor of atom positions, across the batch, in units of Angstroms.
+        
+        Out:
+        ---
+        losses: torch.Tensor [batch_size, ]
+            the loss of each particular batch for this particular chemical loss.
+        '''
+        pass
+    
+    @final
+    def __call__(self, positions: torch.Tensor):
+        '''
+        Evaluates the loss given all atoms positions of the chemically relevant atoms.
+        Relevant atom indexes are stored at self.indexes.
+        Positions should be of shape (batch_size, n_atoms, 3), but can be in the units specified
+        by this particular chemical loss function
+        '''
+
+        true_pos = self._convert_positions(positions)
+        loss = self._eval_loss(true_pos)
+
+        return loss
 
 ######################################################################
 # Below are the specific implementations of individual chemical losses

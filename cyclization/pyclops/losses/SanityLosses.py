@@ -17,7 +17,9 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
                     'phe_n', # phenylalanine N terminal nitrogen
                     }
     
-    def __init__(self, method: str, indexes: Dict[str, int], 
+    def __init__(self, 
+                 units: str, 
+                 method: str, indexes: Dict[str, int], 
                  
                  # defaults below #
                  weights: Dict[str, float] = {'bond_lengths': 1.0, 'bond_angles': 0.0, 'dihedral_angles': 0.0},
@@ -36,7 +38,8 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
         '''
         '''
         
-        super().__init__(weights= weights, indexes= indexes, offsets= offsets, method= method, 
+        super().__init__(units= units,
+                         weights= weights, indexes= indexes, offsets= offsets, method= method, 
                          use_bond_lengths= use_bond_lengths, use_bond_angles= use_bond_angles, 
                          use_dihedrals= use_dihedrals,
                          
@@ -46,7 +49,7 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
                          device=device,
                          )
     
-    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+    def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         pos = positions
 
         proline_c_index = self._indexes['c']
