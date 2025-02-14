@@ -2,7 +2,6 @@ from typing import List, Tuple
 import dill
 import torch
 import numpy as np
-import os
 
 class TrajCamera:
     def __init__(self, save_loc: str, frame_period: float = 0.0):
@@ -15,7 +14,7 @@ class TrajCamera:
         self._save_loc = save_loc
         self._frame_period = frame_period  # Should be between 0.0 and 1.0
         self._last_t = 0.0  # Last time a frame was recorded
-        self._frames: List[Tuple[float, np.ndarray]] = []  # Stores (t, xs as numpy array)
+        self._frames: List[Tuple[float, torch.Tensor]] = []  # Stores (t, xs as numpy array)
 
     @property
     def save_loc(self) -> str:
@@ -30,7 +29,7 @@ class TrajCamera:
         return self._last_t
     
     @property
-    def frames(self) -> List[Tuple[float, np.ndarray]]:
+    def frames(self) -> List[Tuple[float, torch.Tensor]]:
         return self._frames
 
     def wipe(self) -> None:
@@ -50,24 +49,13 @@ class TrajCamera:
         """
         delta_t = t - self.last_t
         if delta_t > self.frame_period:  # Check if we should record
-            self._frames.append((t, xs.clone().detach().cpu().numpy()))  # Store (t, xs as numpy array)
+            self._frames.append((t, xs.clone().detach()))  # Store (t, xs as torch.tensor)
             self.set_last_t(t)  # Update last recorded time
     
     def save(self) -> None:
         """Save recorded frames to a file using dill, converting tensors to NumPy arrays first."""
-        with open(self._save_loc, "wb") as f:
-            dill.dump(self._frames, f)
-
-    def load(self) -> List[Tuple[float, np.ndarray]]:
-        """
-        Loads recorded frames from a pickle file.
-
-        :return: A list of recorded (time, NumPy array) tuples.
-        """
-        if os.path.exists(self._save_loc):
-            with open(self._save_loc, "rb") as f:
-                return dill.load(f)
-        return []
+        with open(self.save_loc, "wb") as f:
+            dill.dump([(t, pos.cpu().numpy()) for t, pos in self._frames], f)
 
     def close(self) -> None:
         """Finalizes the recording process by saving everything and clearing memory."""
