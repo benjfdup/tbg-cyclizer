@@ -341,5 +341,10 @@ class TrajCameraWrapper(torch.nn.Module):
         return self.model.forward(t, xs)  # Call the original model's forward pass
 
     def __getattr__(self, name):
-        """Delegate all other attributes/methods to the original model."""
+        """
+        Delegate all other attributes/methods to the original model.
+        Ensures torch.nn.Module attributes are handled correctly.
+        """
+        if name in self.__dict__:
+            return self.__dict__[name]
         return getattr(self.model, name)
