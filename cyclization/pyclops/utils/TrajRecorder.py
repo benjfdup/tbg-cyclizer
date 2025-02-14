@@ -1,15 +1,21 @@
-from typing import Optional, List, Tuple
-
+from typing import List, Tuple
 import dill
 import torch
+import numpy as np
+import os
 
 class TrajCamera:
-    def __init__(self, save_loc: str, frame_period: float = 0.0, max_frames: Optional[int] = None):
+    def __init__(self, save_loc: str, frame_period: float = 0.0):
+        """
+        A trajectory camera to record model snapshots at different timesteps.
+
+        :param save_loc: Path to save recorded frames.
+        :param frame_period: Minimum time interval between consecutive frames.
+        """
         self._save_loc = save_loc
         self._frame_period = frame_period  # Should be between 0.0 and 1.0
-        self._max_frames = max_frames  # Maximum number of frames to store on the device.
-        self._last_t = 0.0  # Last time a frame was recorded, will be between 0.0 and 1.0
-        self._frames = List[Tuple[float, torch.Tensor]] = []  # Stores (t, xs)
+        self._last_t = 0.0  # Last time a frame was recorded
+        self._frames: List[Tuple[float, np.ndarray]] = []  # Stores (t, xs as numpy array)
 
     @property
     def save_loc(self) -> str:
@@ -20,36 +26,50 @@ class TrajCamera:
         return self._frame_period
     
     @property
-    def max_frames(self) -> Optional[int]:
-        return self._max_frames
-    
-    @property
     def last_t(self) -> float:
         return self._last_t
     
     @property
-    def frames(self) -> list:
+    def frames(self) -> List[Tuple[float, np.ndarray]]:
         return self._frames
+
+    def wipe(self) -> None:
+        """Clears all stored frames from memory."""
+        self._frames.clear()
     
-    def set_last_t(self, t) -> None:
+    def set_last_t(self, t: float) -> None:
+        """Manually update the last recorded time."""
         self._last_t = t
     
     def record(self, xs: torch.Tensor, t: float) -> None:
+        """
+        Records a snapshot of the model state at time `t`.
+
+        :param xs: A torch tensor of shape [n_batches, n_atoms, 3] representing the current state.
+        :param t: A float representing the time of the snapshot.
+        """
         delta_t = t - self.last_t
         if delta_t > self.frame_period:  # Check if we should record
-            
-            if self._max_frames and len(self._frames) >= self._max_frames:
-                pass
-                
-            self._frames.append((t, xs.clone().detach()))  # Store time & tensor snapshot
-            self._last_t = t  # Update last recorded time
+            self._frames.append((t, xs.clone().detach().cpu().numpy()))  # Store (t, xs as numpy array)
+            self.set_last_t(t)  # Update last recorded time
     
     def save(self) -> None:
-        """Save recorded frames to a file using dill."""
-        filename = self.save_loc
-
-        with open(filename, "wb") as f:
+        """Save recorded frames to a file using dill, converting tensors to NumPy arrays first."""
+        with open(self._save_loc, "wb") as f:
             dill.dump(self._frames, f)
-    
+
+    def load(self) -> List[Tuple[float, np.ndarray]]:
+        """
+        Loads recorded frames from a pickle file.
+
+        :return: A list of recorded (time, NumPy array) tuples.
+        """
+        if os.path.exists(self._save_loc):
+            with open(self._save_loc, "rb") as f:
+                return dill.load(f)
+        return []
+
     def close(self) -> None:
-        pass # save everything pertaining to the recording in a big pickle.
+        """Finalizes the recording process by saving everything and clearing memory."""
+        self.save()
+        self.wipe()
