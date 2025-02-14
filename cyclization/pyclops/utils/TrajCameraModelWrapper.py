@@ -22,6 +22,6 @@ class TrajCameraModelWrapper():
         Delegate all other attributes/methods to the original model.
         Ensures torch.nn.Module attributes are handled correctly.
         """
-        if name in self.__dict__:
-            return self.__dict__[name]
+        if name in self.__dict__: # may be able to remove this
+            return self.__dict__[name] # may be able to remove this
         return getattr(self.model, name)
