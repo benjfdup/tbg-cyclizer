@@ -202,20 +202,19 @@ class GyrationLossHandler(LossHandler):
     def squared(self) -> bool:
         return self._squared
 
-    def __call__(self, pos: torch.Tensor) -> torch.Tensor:
+    def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+        
         # pos: [n_batch, n_atoms, 3]
-        positions = pos * self.units_factor # converts to the correct units.
+        pos = positions * self.units_factor # converts to the correct units.
         
         # Step 1: Compute the center of mass (mean position) for each batch
-        center_of_mass = torch.mean(positions, dim=1, keepdim=True)  # [n_batch, 1, 3]
+        center_of_mass = torch.mean(pos, dim=1, keepdim=True)  # [n_batch, 1, 3]
         
         # Step 2: Compute the squared distances from each atom to the center of mass
-        squared_distances = torch.sum((positions - center_of_mass) ** 2, dim=-1)  # [n_batch, n_atoms]
+        squared_distances = torch.sum((pos - center_of_mass) ** 2, dim=-1)  # [n_batch, n_atoms]
         
         # Step 3: Compute the mean squared distance for each batch
         mean_squared_distance = torch.mean(squared_distances, dim=-1)  # [n_batch, ]
-
-        val = torch.zeros_like(mean_squared_distance)
         
         # Step 4: Return either the squared radius of gyration or its square root
         if self.squared:

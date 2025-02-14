@@ -167,7 +167,7 @@ class ChemicalLoss(metaclass=ABCMeta):
     
     @property
     def device(self) -> torch.device:
-        return self.device
+        return self._device
     # getters ^^^
 
     def calc_total_loss(self, 

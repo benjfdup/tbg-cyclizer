@@ -9,6 +9,7 @@ from pyclops.utils.IndexesMethodPair import IndexesMethodPair
 # the below losses are exclusively for the l1 sanity check.
 # ---------------------------------------------------------
 class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
+    ### TODO: for some reason the sanity check isnt picking up the other one... the one we want (ground truth).
     '''
     Loss to handle just the distance between the Proline C terminal and Phenylalanine N terminal.
     '''
@@ -62,9 +63,9 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
         proline_c_atom = pos[:, proline_c_index, :].squeeze()
         phen_n_atom = pos[:, phen_n_index, :].squeeze()
 
-        dist_loss = torch.zeros(pos.shape[0])
-        angle_loss = torch.zeros(pos.shape[0])
-        dihedral_loss = torch.zeros(pos.shape[0])
+        dist_loss = torch.zeros(pos.shape[0], device=self.device)
+        angle_loss = torch.zeros(pos.shape[0], device=self.device)
+        dihedral_loss = torch.zeros(pos.shape[0], device=self.device)
 
         if self.use_bond_lengths: # verify bonding signs. How to do this?
             dist_loss += distance_loss(proline_c_atom, phen_n_atom, target_distance, length_tolerance)  # [batch_size, ]
@@ -88,13 +89,13 @@ class ProC2PheN(AmideAbstractLoss): #true cyclization strategy used.
                 proline_carbonyl_carbon_idx = atom_indexes_dict[(pro.index, 'C')]
                 phen_amine_nitrogen_idx = atom_indexes_dict[(phen.index, 'N')]
         
-            indexes_dict = {
-                'c': proline_carbonyl_carbon_idx,
-                'phe_n': phen_amine_nitrogen_idx,
-            }
+                indexes_dict = {
+                    'c': proline_carbonyl_carbon_idx,
+                    'phe_n': phen_amine_nitrogen_idx,
+                }
 
-            method_str = f'Amide, PHE (N) {phen.index} -> PRO (C) {pro.index}'
+                method_str = f'Amide, PHE (N) {phen.index} -> PRO (C) {pro.index}'
 
-            indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
+                indexes_method_pairs_list.append(IndexesMethodPair(indexes_dict, method_str))
     
         return indexes_method_pairs_list

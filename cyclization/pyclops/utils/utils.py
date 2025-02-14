@@ -135,9 +135,7 @@ def distance_loss(a1: torch.Tensor, a2: torch.Tensor,
     # Apply tolerance: zero penalty within tolerance range
     penalty = torch.where(error <= tolerance, torch.zeros_like(error), (error - tolerance) ** 2)
 
-    result = penalty
-
-    return result
+    return penalty
 
 def bond_angle_loss(a1: torch.Tensor, a2: torch.Tensor, a3: torch.Tensor, 
                     target_angle: float, tolerance: float= 0.0) -> torch.Tensor:
