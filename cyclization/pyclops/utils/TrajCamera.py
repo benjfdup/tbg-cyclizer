@@ -15,6 +15,7 @@ class TrajCamera:
         self._frame_period = frame_period  # Should be between 0.0 and 1.0
         self._last_t = 0.0  # Last time a frame was recorded
         self._frames: List[Tuple[float, torch.Tensor]] = []  # Stores (t, xs as numpy array)
+        self._rec_call_counter = 0
 
     @property
     def save_loc(self) -> str:
@@ -31,6 +32,10 @@ class TrajCamera:
     @property
     def frames(self) -> List[Tuple[float, torch.Tensor]]:
         return self._frames
+    
+    @property
+    def num_frames(self) -> int:
+        return len(self._frames)
 
     def wipe(self) -> None:
         """Clears all stored frames from memory."""
@@ -40,13 +45,15 @@ class TrajCamera:
         """Manually update the last recorded time."""
         self._last_t = t
     
-    def record(self, xs: torch.Tensor, t: float) -> None:
+    def record(self, t: float, xs: torch.Tensor) -> None:
         """
         Records a snapshot of the model state at time `t`.
 
-        :param xs: A torch tensor of shape [n_batches, n_atoms, 3] representing the current state.
         :param t: A float representing the time of the snapshot.
+        :param xs: A torch tensor of shape [n_batches, n_atoms, 3] representing the current state.
         """
+        self._rec_call_counter += 1
+
         delta_t = t - self.last_t
         if delta_t > self.frame_period:  # Check if we should record
             self._frames.append((t, xs.clone().detach()))  # Store (t, xs as torch.tensor)
