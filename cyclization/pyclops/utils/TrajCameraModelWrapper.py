@@ -1,7 +1,7 @@
 import torch
 from pyclops.utils.TrajCamera import TrajCamera
 
-class TrajCameraModelWrapper(torch.nn.Module):
+class TrajCameraModelWrapper():
     def __init__(self, model: torch.nn.Module, camera: TrajCamera):
         """
         A wrapper for any EGNN dynamics model that records trajectory snapshots.
@@ -9,7 +9,6 @@ class TrajCameraModelWrapper(torch.nn.Module):
         :param model: The base model to wrap.
         :param camera: An optional TrajCamera instance to record snapshots.
         """
-        super().__init__()
         self.model = model
         self.camera = camera
 
