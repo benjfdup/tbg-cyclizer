@@ -39,13 +39,13 @@ class TrajCamera:
     def wipe(self) -> None:
         """Clears all stored frames from memory."""
         self._frames.clear()
-        self.set_last_t(0)
+        self.set_last_t(0.0)
     
     def set_last_t(self, t: float) -> None:
         """Manually update the last recorded time."""
         self._last_t = t
     
-    def set_save_loc(self, save_loc: str):
+    def set_save_loc(self, save_loc: str) -> None:
         '''Manually update the save location'''
         self._save_loc = save_loc
     
