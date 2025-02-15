@@ -1,7 +1,6 @@
 from typing import List, Tuple
 import dill
 import torch
-import numpy as np
 
 class TrajCamera:
     def __init__(self, save_loc: str, frame_period: float = 0.0):
@@ -40,10 +39,15 @@ class TrajCamera:
     def wipe(self) -> None:
         """Clears all stored frames from memory."""
         self._frames.clear()
+        self.set_last_t(0)
     
     def set_last_t(self, t: float) -> None:
         """Manually update the last recorded time."""
         self._last_t = t
+    
+    def set_save_loc(self, save_loc: str):
+        '''Manually update the save location'''
+        self._save_loc = save_loc
     
     def record(self, t: float, xs: torch.Tensor) -> None:
         """
