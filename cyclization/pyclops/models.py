@@ -321,3 +321,28 @@ class EGNN_dynamics_AD2_cat_pruned_conditioned(EGNN_dynamics_AD2_cat_bb_all_sc_a
 ######################################################################
 # vv Recording classes below vv 
 ######################################################################
+
+class EGNN_dynamics_AD2_cat_pruned_conditioned_rec(EGNN_dynamics_AD2_cat_pruned_conditioned): 
+    def __init__(self, *args, camera: Optional[TrajCamera] = None, **kwargs):
+        # Remove camera from kwargs to prevent conflicts
+        if "camera" in kwargs:
+            del kwargs["camera"]
+        
+        super().__init__(*args, **kwargs)  # Initialize parent class
+        
+        # Assign camera separately
+        self._camera = camera
+    
+    @property
+    def camera(self) -> Optional[TrajCamera]:
+        return self._camera
+    
+    @property
+    def has_camera(self) -> bool:
+        return self._camera is not None
+    
+    def forward(self, t, xs):
+        if self.has_camera:
+            self._camera.record(t, xs)
+        
+        return super().forward(t, xs)
