@@ -4,7 +4,7 @@
 # if you use it. Thanks!
 # https://corinwagen.github.io/public/blog/20240613_simple_md.html
 ################################################################################################
-
+print('----------========== Starting MD ==========----------')
 import os
 from openff.toolkit import Molecule, Topology
 
@@ -30,6 +30,8 @@ from rdkit.Chem import AllChem
 
 from openmmforcefields.generators import SMIRNOFFTemplateGenerator
 
+print('----------========== Done Imports ==========----------')
+
 #########################################################
 # User inputs below
 # vvvv
@@ -48,6 +50,8 @@ steps = 500000
 #########################################################
 
 os.makedirs(results_dir, exist_ok=True)
+
+print('----------========== Starting Simulation Loop ==========----------')
 
 def generate_forcefield(smiles: str) -> ForceField:
     """ Creates an OpenMM ForceField object that knows how to handle a given SMILES string """
