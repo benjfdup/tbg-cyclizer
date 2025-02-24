@@ -19,6 +19,7 @@ import tempfile
 import cctk
 import openmmtools
 import math
+import tqdm
 from random import random, randint
 
 from sys import stdout
@@ -111,46 +112,51 @@ system = forcefield.createSystem(
     nonbondedCutoff=1*unit.nanometer,
 )
 
-# initialize Langevin integrator and minimize
-integrator = LangevinIntegrator(300 * unit.kelvin, 1 / unit.picosecond, 1 * unit.femtoseconds)
-simulation = Simulation(pdb.topology, system, integrator)
-simulation.context.setPositions(pdb.positions)
-simulation.minimizeEnergy()
+for seed in tqdm.tqdm(seeds):
+    traj_file = os.path.join(results_dir, f"traj_seed_{seed}.dcd")
+    csv_file = os.path.join(results_dir, f"scalars_seed_{seed}.csv")
 
-# we'll make this an NPT simulation now
-system.addForce(MonteCarloBarostat(1*unit.bar, 300*unit.kelvin))
-simulation.context.reinitialize(preserveState=True)
+    # initialize Langevin integrator and minimize
+    integrator = LangevinIntegrator(300 * unit.kelvin, 1 / unit.picosecond, 1 * unit.femtoseconds)
+    integrator.setRandomNumberSeed(seed)
+    simulation = Simulation(pdb.topology, system, integrator)
+    simulation.context.setPositions(pdb.positions)
+    simulation.minimizeEnergy()
 
-checkpoint_interval = 100
-printout_interval = 10000
+    # we'll make this an NPT simulation now
+    system.addForce(MonteCarloBarostat(1*unit.bar, 300*unit.kelvin))
+    simulation.context.reinitialize(preserveState=True)
 
-# set the reporters collecting the MD output.
-simulation.reporters = []
-simulation.reporters.append(DCDReporter("traj_01.dcd", checkpoint_interval))
-simulation.reporters.append(
-    StateDataReporter(
-        stdout,
-        printout_interval,
-        step=True,
-        temperature=True,
-        elapsedTime=True,
-        volume=True,
-        density=True
+    checkpoint_interval = 100
+    printout_interval = 10000
+
+    # set the reporters collecting the MD output.
+    simulation.reporters = []
+    simulation.reporters.append(DCDReporter(traj_file, checkpoint_interval))
+    simulation.reporters.append(
+        StateDataReporter(
+            stdout,
+            printout_interval,
+            step=True,
+            temperature=True,
+            elapsedTime=True,
+            volume=True,
+            density=True
+        )
     )
-)
 
-simulation.reporters.append(
-    StateDataReporter(
-        "scalars_01.csv",
-        checkpoint_interval,
-        time=True,
-        potentialEnergy=True,
-        totalEnergy=True,
-        temperature=True,
-        volume=True,
-        density=True,
+    simulation.reporters.append(
+        StateDataReporter(
+            csv_file,
+            checkpoint_interval,
+            time=True,
+            potentialEnergy=True,
+            totalEnergy=True,
+            temperature=True,
+            volume=True,
+            density=True,
+        )
     )
-)
 
-# actually run the MD
-simulation.step(500000) # this is the number of steps, you may want fewer to test quickly
+    # actually run the MD
+    simulation.step(500000) # this is the number of steps, you may want fewer to test quickly
