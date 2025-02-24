@@ -1,0 +1,6 @@
+FORMAT: strategy_name, SMILES
+
+Lys-Tyr, CNCc1c(O)ccc(c1)C
+Lys-Arg, N1(C)CN=C(NC1)NC
+Sulfur-Mediated-Amide, SC[C@@H](NC(=O)C)C(=O)C
+Carboxylic-Carbo, C(=O)(C)NCc1ccc(cc1)CNC(=O)C
