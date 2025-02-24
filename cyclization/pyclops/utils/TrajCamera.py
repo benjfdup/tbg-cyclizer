@@ -63,10 +63,20 @@ class TrajCamera:
             self._frames.append((t, xs.clone().detach()))  # Store (t, xs as torch.tensor)
             self.set_last_t(t)  # Update last recorded time
     
+    #def save(self) -> None:
+    #    """Save recorded frames to a file using dill, converting tensors to NumPy arrays first."""
+    #    with open(self.save_loc, "wb") as f:
+    #        dill.dump([(t, pos.cpu().numpy()) for t, pos in self._frames], f)
+    
     def save(self) -> None:
-        """Save recorded frames to a file using dill, converting tensors to NumPy arrays first."""
+        """Save recorded frames to a file using torch.save to ensure CPU compatibility."""
+        print(f"Saving {len(self._frames)} frames to {self.save_loc}")
+
+        # Convert everything to CPU *before* saving
+        safe_data = [(t, pos.cpu().numpy() if isinstance(pos, torch.Tensor) else pos) for t, pos in self._frames]
+
         with open(self.save_loc, "wb") as f:
-            dill.dump([(t, pos.cpu().numpy()) for t, pos in self._frames], f)
+            torch.save(safe_data, f)  # Uses torch's CPU-safe saving method
 
     def close(self) -> None:
         """Finalizes the recording process by saving everything and clearing memory."""
