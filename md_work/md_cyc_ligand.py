@@ -38,6 +38,9 @@ from openmmforcefields.generators import SMIRNOFFTemplateGenerator
 smiles = "CNCc1c(O)ccc(c1)C" # !!! CHANGE !!!
 results_dir = '/home/bfd21/rds/hpc-work/tbg/md_work/test_results' # !!! CHANGE !!!
 seeds = range(10) # !!! CHANGE !!!
+checkpoint_interval = 100
+printout_interval = 10000
+steps = 500000
 
 #########################################################
 # ^^^^
@@ -127,9 +130,6 @@ for seed in tqdm.tqdm(seeds):
     system.addForce(MonteCarloBarostat(1*unit.bar, 300*unit.kelvin))
     simulation.context.reinitialize(preserveState=True)
 
-    checkpoint_interval = 100
-    printout_interval = 10000
-
     # set the reporters collecting the MD output.
     simulation.reporters = []
     simulation.reporters.append(DCDReporter(traj_file, checkpoint_interval))
@@ -159,4 +159,4 @@ for seed in tqdm.tqdm(seeds):
     )
 
     # actually run the MD
-    simulation.step(500000) # this is the number of steps, you may want fewer to test quickly
+    simulation.step(steps) # this is the number of steps, you may want fewer to test quickly
