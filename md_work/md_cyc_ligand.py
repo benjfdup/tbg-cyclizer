@@ -38,8 +38,9 @@ print('----------========== Done Imports ==========----------')
 #########################################################
 
 smiles = "CNCc1c(O)ccc(c1)C" # !!! CHANGE !!!
-results_dir = '/home/bfd21/rds/hpc-work/tbg/md_work/test_results' # !!! CHANGE !!!
-seeds = range(10) # !!! CHANGE !!!
+results_dir = '/home/bfd21/rds/hpc-work/tbg/jobs/md-jobs/Lys-Tyr/results' # !!! CHANGE !!!
+
+seeds = range(10)
 checkpoint_interval = 100
 printout_interval = 10000
 steps = 500000
@@ -67,6 +68,7 @@ def generate_forcefield(smiles: str) -> ForceField:
 
 def generate_initial_pdb(
     smiles: str,
+    perm_save_dir: str, # directory where to permanently save the system.pdb file...
     min_side_length: int = 25, # Å
     solvent_smiles = "O",
 ) -> PDBFile:
@@ -100,6 +102,7 @@ def generate_initial_pdb(
           box_size=box_size
          )
         traj_packmol.save_pdb(system_fname)
+        traj_packmol.save_pdb(os.path.join(perm_save_dir, 'system.pdb')) # saves to permanent directory.
 
         return PDBFile(system_fname)
 
@@ -111,7 +114,7 @@ def smiles_to_pdb(smiles: str, filename: str) -> None:
     Chem.MolToPDBFile(mh, filename)
 
 forcefield = generate_forcefield(smiles)
-pdb = generate_initial_pdb(smiles, solvent_smiles="O")
+pdb = generate_initial_pdb(smiles, perm_save_dir = results_dir, solvent_smiles="O")
 
 system = forcefield.createSystem(
     pdb.topology,
