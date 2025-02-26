@@ -1,0 +1,1354 @@
+Loading rhel8/default-amp
+  Loading requirement: rhel8/slurm singularity/current rhel8/global cuda/11.4
+    libpciaccess/0.16/gcc-9.4.0-6fonbj6 libiconv/1.16/gcc-9.4.0-ahebbov
+    libxml2/2.9.12/gcc-9.4.0-gnknt5e ncurses/6.2/gcc-9.4.0-aiirok7
+    hwloc/2.5.0/gcc-9.4.0-7sqomga libevent/2.1.12/gcc-9.4.0-hgny7cm
+    numactl/2.0.14/gcc-9.4.0-52dwc6n cuda/11.4.0/gcc-9.4.0-3hnxhjt
+    gdrcopy/2.2/gcc-9.4.0-e4igtfp knem/1.1.4/gcc-9.4.0-bpbxgva
+    libnl/3.3.0/gcc-9.4.0-whwhrwb rdma-core/34.0/gcc-9.4.0-5eo5n2u
+    ucx/1.11.1/gcc-9.4.0-lktqyl4 openmpi/4.1.1/gcc-9.4.0-epagguv
+Changed directory to /rds/user/bfd21/hpc-work/tbg.
+
+JobID: 5705108
+======
+Time: Wed Feb 26 14:28:11 GMT 2025
+Running on master node: gpu-q-4
+Current directory: /rds/user/bfd21/hpc-work/tbg
+
+Nodes allocated:
+================
+gpu-q-4
+
+numtasks=, numnodes=, mpi_tasks_per_node= (OMP_NUM_THREADS=1)
+
+Executing command:
+==================
+python /home/bfd21/rds/hpc-work/tbg/cyclization/jobs/md-jobs/Lys-Tyr/md.py 
+
+Warning: importing 'simtk.openmm' is deprecated.  Import 'openmm' instead.
+Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.
+
+****** PyMBAR will use 64-bit JAX! *******
+* JAX is currently set to 32-bit bitsize *
+* which is its default.                  *
+*                                        *
+* PyMBAR requires 64-bit mode and WILL   *
+* enable JAX's 64-bit mode when called.  *
+*                                        *
+* This MAY cause problems with other     *
+* Uses of JAX in the same code.          *
+******************************************
+
+
+################################################################################
+
+ PACKMOL - Packing optimization for the automated generation of
+ starting configurations for molecular dynamics simulations.
+ 
+                           Included as part of Packmol Memgen
+                                                              Version 20.14.3 
+
+################################################################################
+
+  Packmol must be run with: packmol < inputfile.inp 
+
+  Userguide at: http://m3g.iqm.unicamp.br/packmol 
+
+  Reading input file... (Control-C aborts)
+  Types of coordinate files specified: pdb
+  Will add the TER flag between molecules. 
+  Seed for random number generator:      1234567
+  Output file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+  Reading coordinate file: /tmp/tmpsrug9hn4/solute.pdb
+  Reading coordinate file: /tmp/tmpsrug9hn4/solvent.pdb
+  Number of independent structures:            2
+  The structures are: 
+  Structure            1 :/tmp/tmpsrug9hn4/solute.pdb(          24  atoms)
+  Structure            2 :/tmp/tmpsrug9hn4/solvent.pdb(           3  atoms)
+  Maximum number of GENCAN loops for all molecule packing:          400
+  Total number of restrictions:            2
+  Distance tolerance:    2.0000000000000000     
+  Warning: Type of residue numbering not set for structure            1
+  Residue numbering set for structure            1 :           0
+  Swap chains of molecules of structure            1 : F
+  Warning: Type of residue numbering not set for structure            2
+  Residue numbering set for structure            2 :           0
+  Swap chains of molecules of structure            2 : F
+  Number of molecules of type            1 :            1
+  Number of molecules of type            2 :          954
+  Total number of atoms:         2886
+  Total number of molecules:          955
+  Number of fixed molecules:            0
+  Number of free molecules:          955
+  Number of variables:         5730
+  Total number of fixed atoms:            0
+  Maximum internal distance of type            1 :    8.5812300983017593     
+  Maximum internal distance of type            2 :    1.6390012202557995     
+  All atoms must be within these coordinates: 
+   x: [   -987.20000000000005      ,    1012.8000000000000       ] 
+   y: [   -992.85076804341873      ,    1007.1492319565813       ] 
+   z: [   -996.91284885602613      ,    1003.0871511439739       ] 
+  If the system is larger than this, increase the sidemax parameter. 
+
+################################################################################
+
+  Building initial approximation ... 
+
+################################################################################
+
+  Adjusting initial point to fit the constraints 
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+  Molecules of type:            1
+
+  Packing:|0                                                             100%|
+          |******************************************
+
+  Restraint-only function value:    0.0000000000000000     
+  Maximum violation of the restraints:    0.0000000000000000     
+
+--------------------------------------------------------------------------------
+
+  Molecules of type:            2
+
+  Packing:|0                                                             100%|
+          |***********************************
+
+  Restraint-only function value:    6.3931566163284492E-002
+  Maximum violation of the restraints:    7.4987984126757062E-003
+
+--------------------------------------------------------------------------------
+
+  Rescaling maximum and minimum coordinates... 
+  Computing size of patches... 
+  Add fixed molecules to permanent arrays... 
+  Reseting center of mass... 
+
+--------------------------------------------------------------------------------
+
+  Setting initial trial coordinates ... 
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+  Molecules of type:            1
+  Adjusting random positions to fit the constraints. 
+  Packing:|0                                                             100%|
+          |
+  Restraint-only function value:    3.4591386644511460E-005
+  Maximum violation of the restraints:    3.4591386644511460E-005
+
+--------------------------------------------------------------------------------
+
+  Molecules of type:            2
+  Adjusting random positions to fit the constraints. 
+  Packing:|0                                                             100%|
+          |
+  Restraint-only function value:    6.0299987607961682E-003
+  Maximum violation of the restraints:    4.8910349873465021E-003
+
+################################################################################
+
+  Objective function at initial point:    41699.682706469335     
+
+################################################################################
+
+  Packing molecules of type:            1
+
+################################################################################
+
+
+  Initial approximation is a solution. Nothing to do. 
+
+  Current point written to file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+--------------------------------------------------------------------------------
+  Packing solved for molecules of type           1
+  Objective function value:    3.4591386644511460E-005
+  Maximum violation of target distance:    0.0000000000000000     
+  Max. constraint violation:    3.4591386644511460E-005
+--------------------------------------------------------------------------------
+
+################################################################################
+
+  Packing molecules of type:            2
+
+################################################################################
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            0
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .66742E+03
+  Best function value before: f = .40955E+05
+  Improvement from best function value:    98.37 %
+  Improvement from last loop:    98.37 %
+  Maximum violation of target distance:     1.204609
+  Maximum violation of the constraints: .45306E+01
+  All-type function value: .11508E+04
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            1
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .43827E+03
+  Best function value before: f = .66742E+03
+  Improvement from best function value:    34.33 %
+  Improvement from last loop:    34.33 %
+  Maximum violation of target distance:     0.744479
+  Maximum violation of the constraints: .34576E+01
+  All-type function value: .93279E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            2
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .32049E+03
+  Best function value before: f = .43827E+03
+  Improvement from best function value:    26.87 %
+  Improvement from last loop:    26.87 %
+  Maximum violation of target distance:     0.672331
+  Maximum violation of the constraints: .21320E+01
+  All-type function value: .81883E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            3
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .25060E+03
+  Best function value before: f = .32049E+03
+  Improvement from best function value:    21.81 %
+  Improvement from last loop:    21.81 %
+  Maximum violation of target distance:     0.137303
+  Maximum violation of the constraints: .20293E+01
+  All-type function value: .76221E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            4
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .21607E+03
+  Best function value before: f = .25060E+03
+  Improvement from best function value:    13.78 %
+  Improvement from last loop:    13.78 %
+  Maximum violation of target distance:     0.086670
+  Maximum violation of the constraints: .21156E+01
+  All-type function value: .73189E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            5
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .20014E+03
+  Best function value before: f = .21607E+03
+  Improvement from best function value:     7.37 %
+  Improvement from last loop:     7.37 %
+  Maximum violation of target distance:     0.097879
+  Maximum violation of the constraints: .19159E+01
+  All-type function value: .72849E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            6
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .19002E+03
+  Best function value before: f = .20014E+03
+  Improvement from best function value:     5.05 %
+  Improvement from last loop:     5.05 %
+  Maximum violation of target distance:     0.000000
+  Maximum violation of the constraints: .18478E+01
+  All-type function value: .73819E+03
+
+--------------------------------------------------------------------------------
+
+  Moving worst molecules ... 
+  Function value before moving molecules:   190.02153647248281     
+  Type         2 molecules with non-zero contributions:   40.57%
+  Moving        47 molecules of type         2
+  New positions will be based on good molecules (movebadrandom is not set) 
+   Moving:|0                                                             100%|
+          |******************************************************************|
+  Function value after moving molecules:   5367.7520577495998     
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            7
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .45506E+02
+  Best function value before: f = .19002E+03
+  Improvement from best function value:    76.05 %
+  Improvement from last loop:    99.15 %
+  Maximum violation of target distance:     0.938423
+  Maximum violation of the constraints: .45881E+00
+  All-type function value: .65097E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            8
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .99274E+01
+  Best function value before: f = .45506E+02
+  Improvement from best function value:    78.18 %
+  Improvement from last loop:    78.18 %
+  Maximum violation of target distance:     0.519545
+  Maximum violation of the constraints: .91026E-01
+  All-type function value: .62202E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            9
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .99444E+00
+  Best function value before: f = .99274E+01
+  Improvement from best function value:    89.98 %
+  Improvement from last loop:    89.98 %
+  Maximum violation of target distance:     0.081075
+  Maximum violation of the constraints: .57209E-01
+  All-type function value: .60590E+03
+
+--------------------------------------------------------------------------------
+
+  Current solution written to file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           10
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .24138E+00
+  Best function value before: f = .99444E+00
+  Improvement from best function value:    75.73 %
+  Improvement from last loop:    75.73 %
+  Maximum violation of target distance:     0.035670
+  Maximum violation of the constraints: .16710E-01
+  All-type function value: .60244E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           11
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .54342E-01
+  Best function value before: f = .24138E+00
+  Improvement from best function value:    77.49 %
+  Improvement from last loop:    77.49 %
+  Maximum violation of target distance:     0.022147
+  Maximum violation of the constraints: .32199E-02
+  All-type function value: .59867E+03
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           12
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |*************************************************
+
+  Function value from last GENCAN loop: f = .17175E-01
+  Best function value before: f = .54342E-01
+  Improvement from best function value:    68.39 %
+  Improvement from last loop:    68.39 %
+  Maximum violation of target distance:     0.009578
+  Maximum violation of the constraints: .16167E-02
+  Current structure written to file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+--------------------------------------------------------------------------------
+  Packing solved for molecules of type           2
+  Objective function value:    1.7175053949544179E-002
+  Maximum violation of target distance:    9.5775898801648829E-003
+  Max. constraint violation:    1.6166613139833937E-003
+--------------------------------------------------------------------------------
+
+################################################################################
+
+  Packing all molecules together 
+
+################################################################################
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            0
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .35919E+03
+  Best function value before: f = .59741E+03
+  Improvement from best function value:    39.88 %
+  Improvement from last loop:    39.88 %
+  Maximum violation of target distance:     2.293449
+  Maximum violation of the constraints: .10590E+02
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            1
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .28417E+03
+  Best function value before: f = .35919E+03
+  Improvement from best function value:    20.89 %
+  Improvement from last loop:    20.89 %
+  Maximum violation of target distance:     0.328685
+  Maximum violation of the constraints: .56289E+01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            2
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .24250E+03
+  Best function value before: f = .28417E+03
+  Improvement from best function value:    14.66 %
+  Improvement from last loop:    14.66 %
+  Maximum violation of target distance:     0.000000
+  Maximum violation of the constraints: .38454E+01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            3
+  Scaling radii by:    1.1000000000000001     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .22222E+03
+  Best function value before: f = .24250E+03
+  Improvement from best function value:     8.36 %
+  Improvement from last loop:     8.36 %
+  Maximum violation of target distance:     0.000000
+  Maximum violation of the constraints: .32394E+01
+
+--------------------------------------------------------------------------------
+
+  Moving worst molecules ... 
+  Function value before moving molecules:   222.22250414596184     
+  Type         1 molecules with non-zero contributions:  100.00%
+  Moving         1 molecules of type         1
+  New positions will be based on good molecules (movebadrandom is not set) 
+   Moving:|0                                                             100%|
+          |******************************************************************|
+  Type         2 molecules with non-zero contributions:   41.19%
+  Moving        47 molecules of type         2
+  New positions will be based on good molecules (movebadrandom is not set) 
+   Moving:|0                                                             100%|
+          |******************************************************************|
+  Function value after moving molecules:   5547.8617459915340     
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            4
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .10539E+03
+  Best function value before: f = .22222E+03
+  Improvement from best function value:    52.58 %
+  Improvement from last loop:    98.10 %
+  Maximum violation of target distance:     1.013510
+  Maximum violation of the constraints: .36644E+01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            5
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .27788E+02
+  Best function value before: f = .10539E+03
+  Improvement from best function value:    73.63 %
+  Improvement from last loop:    73.63 %
+  Maximum violation of target distance:     0.541726
+  Maximum violation of the constraints: .11027E+01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            6
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .53845E+01
+  Best function value before: f = .27788E+02
+  Improvement from best function value:    80.62 %
+  Improvement from last loop:    80.62 %
+  Maximum violation of target distance:     0.146052
+  Maximum violation of the constraints: .46152E+00
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            7
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .18350E+01
+  Best function value before: f = .53845E+01
+  Improvement from best function value:    65.92 %
+  Improvement from last loop:    65.92 %
+  Maximum violation of target distance:     0.077965
+  Maximum violation of the constraints: .23202E+00
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            8
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .82363E+00
+  Best function value before: f = .18350E+01
+  Improvement from best function value:    55.12 %
+  Improvement from last loop:    55.12 %
+  Maximum violation of target distance:     0.047944
+  Maximum violation of the constraints: .11672E+00
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:            9
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .41383E+00
+  Best function value before: f = .82363E+00
+  Improvement from best function value:    49.76 %
+  Improvement from last loop:    49.76 %
+  Maximum violation of target distance:     0.037817
+  Maximum violation of the constraints: .62085E-01
+
+--------------------------------------------------------------------------------
+
+  Current solution written to file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           10
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .22493E+00
+  Best function value before: f = .41383E+00
+  Improvement from best function value:    45.65 %
+  Improvement from last loop:    45.65 %
+  Maximum violation of target distance:     0.041143
+  Maximum violation of the constraints: .30125E-01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           11
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .12075E+00
+  Best function value before: f = .22493E+00
+  Improvement from best function value:    46.31 %
+  Improvement from last loop:    46.31 %
+  Maximum violation of target distance:     0.025032
+  Maximum violation of the constraints: .14461E-01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           12
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .68499E-01
+  Best function value before: f = .12075E+00
+  Improvement from best function value:    43.27 %
+  Improvement from last loop:    43.27 %
+  Maximum violation of target distance:     0.020364
+  Maximum violation of the constraints: .10072E-01
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           13
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .38465E-01
+  Best function value before: f = .68499E-01
+  Improvement from best function value:    43.85 %
+  Improvement from last loop:    43.85 %
+  Maximum violation of target distance:     0.015802
+  Maximum violation of the constraints: .59658E-02
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           14
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .21802E-01
+  Best function value before: f = .38465E-01
+  Improvement from best function value:    43.32 %
+  Improvement from last loop:    43.32 %
+  Maximum violation of target distance:     0.012365
+  Maximum violation of the constraints: .34608E-02
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           15
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |******************************************************************|
+          |******************************************************************|
+
+  Function value from last GENCAN loop: f = .13160E-01
+  Best function value before: f = .21802E-01
+  Improvement from best function value:    39.64 %
+  Improvement from last loop:    39.64 %
+  Maximum violation of target distance:     0.010173
+  Maximum violation of the constraints: .22719E-02
+
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+  Starting GENCAN loop:           16
+  Scaling radii by:    1.0000000000000000     
+
+  Packing:|0                                                             100%|
+          |*******
+
+  Function value from last GENCAN loop: f = .12393E-01
+  Best function value before: f = .13160E-01
+  Improvement from best function value:     5.82 %
+  Improvement from last loop:     5.82 %
+  Maximum violation of target distance:     0.009860
+  Maximum violation of the constraints: .21652E-02
+
+################################################################################
+
+                                 Success! 
+              Final objective function value: .12393E-01
+              Maximum violation of target distance:   0.009860
+              Maximum violation of the constraints: .21652E-02
+
+--------------------------------------------------------------------------------
+
+              Please cite this work if Packmol was useful: 
+
+           L. Martinez, R. Andrade, E. G. Birgin, J. M. Martinez, 
+         PACKMOL: A package for building initial configurations for
+                   molecular dynamics simulations. 
+          Journal of Computational Chemistry, 30:2157-2164,2009.
+
+################################################################################
+
+  Solution written to file: /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+
+--------------------------------------------------------------------------------
+
+   Running time:    15.3043051      seconds. 
+
+--------------------------------------------------------------------------------
+
+
+----------========== Starting MD ==========----------
+----------========== Done Imports ==========----------
+----------========== Starting Simulation Loop ==========----------
+
+# Mixture
+
+tolerance 2.000000
+filetype pdb
+output /tmp/tmpn31k9yxb/tmpniard4ve.pdb
+add_amber_ter
+
+
+structure /tmp/tmpsrug9hn4/solute.pdb
+  number 1
+  inside box 0. 0. 0. 23.000000 23.000000 23.000000
+end structure
+
+structure /tmp/tmpsrug9hn4/solvent.pdb
+  number 954
+  inside box 0. 0. 0. 23.000000 23.000000 23.000000
+end structure
+
+Saved packmole initial .pdb to /home/bfd21/rds/hpc-work/tbg/cyclization/jobs/md-jobs/Lys-Tyr/results/system.pdb
+  0%|          | 0/10 [00:00<?, ?it/s]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,298.0654908943117,28.66522488788168,1.0043576083237082,8.416175842285156e-05
+20000,306.1776443270102,28.915693282979003,0.9956578398001326,2.2393178939819336
+30000,302.49345985688285,28.13654387107806,1.0232293220649555,4.483938455581665
+40000,294.0427714167755,29.1223071083369,0.9885939531972132,6.7241668701171875
+50000,294.4073574193613,28.678785994343315,1.0038826858337981,8.977708339691162
+60000,297.18404672934594,28.71305174783629,1.0026846663076696,11.216559410095215
+70000,304.7827792801629,28.927134716213892,0.9952640312597906,13.461581230163574
+80000,298.683100599982,28.50188272175748,1.0101135069395453,15.70657467842102
+90000,305.2384383284206,28.30027484320479,1.0173094385112276,17.949387550354004
+100000,296.40370698152947,28.613832562478095,1.0061615006515126,20.194782733917236
+110000,294.2748888644715,28.798663273701354,0.9997039250340809,22.438607931137085
+120000,295.6672673007708,29.108408130632977,0.9890659970565702,24.682197332382202
+130000,297.63469013606164,29.08521991943471,0.9898545305898322,26.92363405227661
+140000,305.170122473573,28.227794192353546,1.019921589135465,29.164982080459595
+150000,294.2471307405769,28.465186364337978,1.0114157111763444,31.411938905715942
+160000,295.99404936831667,28.450281684636597,1.0119455768341656,33.65316700935364
+170000,304.9094928392829,28.98379703568977,0.9933183245453582,35.88924956321716
+180000,297.9126383763142,29.012863815660484,0.992323160284295,38.12830471992493
+190000,301.5439682802601,28.50407025573077,1.0100359861646706,40.378662109375
+200000,303.5348368769818,29.038908318543694,0.9914331625224784,42.62133049964905
+210000,301.4206999243484,28.2400055039034,1.0194805630074908,44.86490988731384
+220000,304.91140188308765,28.244421923300198,1.0193211526380612,47.10770344734192
+230000,303.1116894238692,28.61876229624614,1.0059881839904175,49.35421967506409
+240000,295.7762920403329,28.35815740450924,1.0152329821639312,51.58860683441162
+250000,294.06397911046525,28.480824333528247,1.0108603730462151,53.82525897026062
+260000,296.5622579630261,28.72641392394134,1.0022182645798206,56.06465792655945
+270000,293.6536654969152,28.70546709345931,1.0029495989986543,58.3018000125885
+280000,301.6995741219717,28.643111259152512,1.005133012610653,60.53979468345642
+290000,305.9488433560555,28.701474865738298,1.0030891041359558,62.78049850463867
+300000,304.21961867543837,28.775186146958784,1.0005195644406588,65.01821184158325
+310000,294.9838344581374,28.769388163127832,1.0007212022448513,67.25910019874573
+320000,302.3652233317553,28.70056882347867,1.0031207704462688,69.49540996551514
+330000,302.4936071076704,28.65808731810842,1.0046077531581186,71.73486971855164
+340000,300.91303008005235,29.008669569884912,0.9924666362618125,73.97692060470581
+350000,295.03895606290797,28.49592023863834,1.0103248629751849,76.2177562713623
+360000,292.5466935373299,28.431947240970093,1.0125981335871304,78.46056079864502
+370000,303.2386295448947,28.522322754070345,1.009389626458298,80.7012345790863
+380000,304.55201546840067,28.85962708322067,0.9975921250622467,82.93595123291016
+390000,291.9373231596841,28.62430979155786,1.005793219822723,85.17533373832703
+400000,300.2016259128879,28.42547806474639,1.0128285844437543,87.41234278678894
+410000,304.5847551249803,28.316544957488386,1.0167249130738478,89.64930748939514
+420000,298.8365544459416,28.590990526281832,1.006965347492567,91.88359332084656
+430000,300.74605255505537,28.465820529382196,1.0113931787329695,94.12272524833679
+440000,299.51656675575566,28.445497296343486,1.0121157809448773,96.3626298904419
+450000,294.5419688497865,28.89909826575634,0.9962295863247964,98.62034606933594
+460000,297.79393877021397,28.71535157428316,1.002604360806012,100.86041450500488
+470000,292.5199390675093,28.582807609273065,1.0072536296649093,103.10271286964417
+480000,309.4419397260965,29.072178575879697,0.9902985644956235,105.34411001205444
+490000,292.22983095395983,28.599034517319666,1.006682120440768,107.58559656143188
+500000,304.87338239250846,28.52014977477689,1.0094665328832169,109.82564783096313
+ 10%|█         | 1/10 [01:54<17:08, 114.22s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,295.6680927338371,28.71706221601933,1.0025446368394184,8.130073547363281e-05
+20000,296.1444103550975,28.325376144202995,1.0164079221361446,2.407489538192749
+30000,301.2031466268189,28.62138202617675,1.005896105370558,4.830726385116577
+40000,293.58818465580646,28.057818068482923,1.0261003418078958,7.239806890487671
+50000,293.6649931526783,28.839734524372574,0.9982802264051155,9.647001028060913
+60000,298.67322533773887,28.94163382363383,0.9947654263714705,12.057125806808472
+70000,300.57165089580513,28.40098942644605,1.013701891795561,14.482526779174805
+80000,299.3425199916342,28.370810540364417,1.0147801970441794,16.892296314239502
+90000,297.36630232933027,28.376582471028684,1.0145737859676238,19.308833837509155
+100000,303.65150199259494,28.4259492334975,1.0128117965020291,21.718257188796997
+110000,307.4814192267003,28.44049028179205,1.0122939662853097,24.12517285346985
+120000,298.6117868163849,28.56945408384564,1.0077244257436906,26.528638124465942
+130000,295.9601158478513,28.984256909171386,0.9933025642394206,28.93866729736328
+140000,305.17581328122634,28.547793231774264,1.0084890442043024,31.345624446868896
+150000,302.3502281749451,28.898587043077786,0.9962472098562453,33.75326418876648
+160000,306.2370878217532,28.15510153821459,1.022554888369966,36.158875942230225
+170000,309.6913779592787,28.78502509178435,1.0001775790937624,38.56342840194702
+180000,286.8638106360392,28.47407880821344,1.0110998464382093,40.97314691543579
+190000,295.6240743753862,28.065904300092978,1.02580470604536,43.3793158531189
+200000,301.0913862840663,28.285069004123972,1.0178563363680133,45.79886746406555
+210000,298.6029656339184,28.42111493875653,1.0129840709097,48.20838809013367
+220000,296.34820799865616,28.40088032768193,1.0137057858165313,50.617677450180054
+230000,296.15663715932527,28.75153480534297,1.0013426032861361,53.027477502822876
+240000,304.07615818709013,28.581405774385527,1.0073030325280787,55.44269561767578
+250000,306.88281456991024,29.08719742285144,0.989787234979057,57.84371614456177
+260000,302.6732499151515,29.026088004830857,0.9918710611523844,60.25543546676636
+270000,296.3599191148254,29.00842621151358,0.9924749622930988,62.66475534439087
+280000,300.3012879083836,28.47234182852982,1.0111615294533245,65.07286024093628
+290000,299.67974851732293,29.03594892559481,0.9915342110646829,67.47460055351257
+300000,297.37421898534757,27.740783564442204,1.037827091061585,69.88739347457886
+310000,306.9428906050857,28.5085484271273,1.009877327989763,72.29555177688599
+320000,305.38769588032994,28.295118206080232,1.0174948378292152,74.71872973442078
+330000,296.19346269247126,28.937122735370565,0.9949205031108078,77.11901354789734
+340000,301.29640753058504,28.555339305167973,1.0082225394969693,79.52402973175049
+350000,295.92120032210073,28.3381952848152,1.015948137173049,81.92619895935059
+360000,299.87847969200703,28.636738048664004,1.005356708628245,84.34301161766052
+370000,298.3192998416284,28.914511010736028,0.995698550799086,86.75917387008667
+380000,297.45079506611194,28.90431570267664,0.996049759717647,89.1634910106659
+390000,303.0496045058627,28.52394409797972,1.0093322512328586,91.56746506690979
+400000,302.7888476374261,28.18479682704601,1.021477532271128,93.97406220436096
+410000,304.5396151035975,28.841695889351445,0.9982123388619322,96.37593841552734
+420000,306.60035110852726,28.532092976748906,1.0090439819439625,98.78314065933228
+430000,297.2573323198741,28.583844475798525,1.0072170919776107,101.18860578536987
+440000,300.71288567000704,29.145461315275686,0.9878085784617388,103.59391450881958
+450000,303.4594516667912,28.787932160559016,1.0000765789596406,105.99889755249023
+460000,291.68906437218396,28.72380902925354,1.0023091533972037,108.40217590332031
+470000,296.18223064750737,28.719252564189034,1.0024681751764473,110.80420565605164
+480000,299.01820281994367,28.96917604805045,0.9938196606869522,113.207923412323
+490000,302.4744543054968,28.587182857664896,1.0070994701996236,115.61649513244629
+500000,299.85056769604194,28.709104695445916,1.0028225197500156,118.02104067802429
+ 20%|██        | 2/10 [03:55<15:49, 118.64s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,306.89475395558776,28.299332179136254,1.0173433255672255,7.963180541992188e-05
+20000,295.030535001984,28.481720777322778,1.0108285568678443,2.5434508323669434
+30000,296.38882430848815,28.350057042385306,1.0155230611145092,5.086153984069824
+40000,302.1216506820551,29.032549062881518,0.9916503248852728,7.631868362426758
+50000,298.02626561934073,28.93306511728547,0.9950600323107144,10.177731990814209
+60000,293.3568357267198,28.55859336448304,1.008107659330974,12.725029706954956
+70000,286.37248152283286,28.730719558057597,1.0020680704594405,15.272348403930664
+80000,308.70870702660545,28.358918853824544,1.0152057227164493,17.812659740447998
+90000,295.4952384557264,28.57315967999604,1.0075937359706826,20.36858606338501
+100000,295.7323176668772,28.427406509050453,1.01275987668056,22.915817737579346
+110000,300.53056812461256,28.682407809807188,1.0037559224930224,25.464043855667114
+120000,298.12250753262896,28.537871002896193,1.0088396821028551,28.004743814468384
+130000,299.24487416694274,28.362044686924534,1.0150938350268837,30.54908061027527
+140000,295.76199570487125,28.60028416229046,1.0066381350299287,33.09378480911255
+150000,302.1814960222309,28.636544200176992,1.0053635141588118,35.6385817527771
+160000,311.3969305162794,28.124800304045372,1.0236565735299819,38.17995619773865
+170000,293.9985063478095,28.337520510591055,1.0159723289726021,40.72265625
+180000,300.70662284076883,28.666960036549003,1.0042968167447137,43.2702522277832
+190000,299.20682712297,28.307420680626514,1.0170526320738908,45.81374216079712
+200000,300.90758173012,28.489678325691514,1.0105462189262986,48.35678815841675
+210000,294.4447507251676,28.877954167233497,0.9969590139152218,50.90018272399902
+220000,302.28189503412494,28.7792960000438,1.0003766843501058,53.443336963653564
+230000,295.93261594144786,28.370613950296807,1.0147872288168402,55.98905849456787
+240000,302.2560011160343,28.196299968236023,1.0210608038248647,58.532899379730225
+250000,307.6498378389349,28.857800122328435,0.9976552817058982,61.0810272693634
+260000,299.45108747764317,28.56349312974608,1.0079347291200869,63.62406277656555
+270000,290.01575358625377,28.19622151864281,1.0210636446950376,66.16638231277466
+280000,302.586043863141,28.417531521168048,1.013111807019849,68.7151894569397
+290000,296.0697209913794,28.35448152485257,1.0153645971350123,71.26214575767517
+300000,308.87413026434604,28.90569439875896,0.9960022517808863,73.80782651901245
+310000,296.946037994237,28.6885250489788,1.00354189214335,76.35375046730042
+320000,293.95413742504763,28.541695606231983,1.008704497015512,78.89992833137512
+330000,309.30389992493747,28.597274758408258,1.0067440675265436,81.44470071792603
+340000,303.03689193416767,28.741041837761315,1.0017081799946534,83.98953461647034
+350000,296.04569528736226,28.787564462522834,1.0000893527458565,86.53495740890503
+360000,305.7732182900609,28.192725685708115,1.0211902542310343,89.08474373817444
+370000,295.8312191383204,28.628050901438783,1.0056617828986447,91.63352298736572
+380000,299.58127889568334,28.67098108593865,1.0041559660675117,94.178719997406
+390000,296.9034794772576,28.137871404883366,1.0231810465043747,96.72426128387451
+400000,293.17682337998224,28.111986664785007,1.024123163323728,99.26902866363525
+410000,297.6256065077184,28.482160453109024,1.010812952825404,101.815345287323
+420000,299.17697920502576,29.018294212851423,0.9921374598822458,104.36119723320007
+430000,298.9081617222747,28.712099314047997,1.0027179272247746,106.90913081169128
+440000,310.12283780718116,29.08668405184926,0.9898047044184699,109.45620083808899
+450000,295.59295752484667,28.626280212242968,1.005723988481781,112.00529050827026
+460000,297.47952738928217,28.41147660646591,1.0133277164447692,114.54944276809692
+470000,297.0086510116791,28.77395206085117,1.000562475726959,117.10007214546204
+480000,299.48084145067276,28.649332286490562,1.0049147541225563,119.64313268661499
+490000,303.62396823744126,28.371975729655666,1.0147385217294307,122.18732166290283
+500000,297.4647065808223,28.761075866109213,1.001010422714371,124.73251509666443
+ 30%|███       | 3/10 [06:04<14:21, 123.11s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,296.79043111064544,28.51210390099552,1.009751395772967,8.130073547363281e-05
+20000,300.471782835912,29.10998773062434,0.9890123272077587,2.7283473014831543
+30000,301.02403084311834,28.743822383765274,1.0016112793236214,5.455119848251343
+40000,309.3000023867311,28.923122130274525,0.9954021070332083,8.180466890335083
+50000,300.92381352345046,28.697713498693485,1.0032205775475738,10.90748405456543
+60000,298.73502499929896,28.568382184993986,1.0077622360280722,13.650448322296143
+70000,293.2282236852631,28.837883266930803,0.998344311333992,16.3747775554657
+80000,300.4417257301822,28.698280648726282,1.0032007513917693,19.10017704963684
+90000,305.58561154054837,28.34836623588276,1.0155836308482615,21.827719926834106
+100000,301.9619119147166,28.3721083135804,1.014733779818315,24.553204774856567
+110000,306.37792087822356,29.05215565610475,0.9909810842006965,27.278007745742798
+120000,305.47812509709195,28.7004907560237,1.003123499008865,30.00233221054077
+130000,299.71009205458705,28.777641584781687,1.0004341956110467,32.72721457481384
+140000,298.45412833285195,28.583174147487902,1.0072407130816985,35.462525367736816
+150000,306.3587291123405,28.628093317199568,1.005660292896878,38.18500471115112
+160000,302.10653643919824,28.510606310437026,1.0098044354782705,40.908360719680786
+170000,298.07359349754944,28.145761705677963,1.022894210912264,43.633636236190796
+180000,299.84046054409447,28.530904418342605,1.0090860173344107,46.357202768325806
+190000,295.8772148217087,28.665491127843033,1.0043482800296408,49.083313941955566
+200000,300.73777698999396,28.55251096009063,1.0083224116679474,51.8054141998291
+210000,299.33523803639315,28.545966486604193,1.0085535805545232,54.53399586677551
+220000,298.0334355766657,28.571008267213614,1.0076696083383214,57.256561517715454
+230000,300.15469499396596,28.461500594557332,1.0115466897047443,59.9760537147522
+240000,301.5853013030695,28.821719208184106,0.9989042118722377,62.701327085494995
+250000,298.1525600320429,29.0063192582359,0.9925470534245588,65.42199802398682
+260000,300.2926338179696,28.946554538311215,0.9945963231081574,68.14781832695007
+270000,295.3324129653931,28.489162142647963,1.0105645285845581,70.87356400489807
+280000,297.11440752593,29.10926537382792,0.9890368699011974,73.59720206260681
+290000,300.8442834847376,28.417428349986384,1.013115485183158,76.31887102127075
+300000,303.52314829293664,28.400525750757346,1.0137184418033651,79.04262161254883
+310000,295.43646777571524,28.13691414081895,1.0232158568052594,82.43340063095093
+320000,300.76801047275313,28.548675006820467,1.0084578952815122,85.26499605178833
+330000,300.5623850221334,28.47851804152501,1.0109422361260052,87.98902344703674
+340000,305.13187434488333,28.83003845580716,0.9986159662806471,90.71355080604553
+350000,292.7818472982593,28.33181538267455,1.016176913536568,93.43831086158752
+360000,295.15772742780103,28.477741340856866,1.0109698085202083,96.15504097938538
+370000,299.4063010366093,28.97841288499092,0.9935028817732681,98.87724804878235
+380000,297.5328963197121,28.351892750482595,1.0154573087528354,101.59932446479797
+390000,295.04963455165716,28.474773386287747,1.0110751829308042,104.32217454910278
+400000,305.9016964879042,28.669084572231366,1.00422239286775,107.04170894622803
+410000,298.0985915959872,28.67302225407716,1.0040844824566852,109.76367211341858
+420000,296.85815507791455,28.646418193593654,1.0050169803390139,112.48712539672852
+430000,296.62929268534816,28.46797020089991,1.011316806476915,115.21339511871338
+440000,300.49531704315586,28.248587758147654,1.0191708327843834,117.93785262107849
+450000,291.175195011316,28.284045283142778,1.017893176957008,120.66054272651672
+460000,300.10665756770135,28.791889229766166,0.9999391314929666,123.38022923469543
+470000,299.8369295262699,28.72735590246044,1.0021854015457183,126.10794949531555
+480000,301.3200786504646,28.453160156392972,1.0118432030821503,128.8238730430603
+490000,290.3775414364463,28.435643253796076,1.0124665179364523,131.5483980178833
+500000,297.5738323407852,28.52347806941436,1.0093487421271272,134.26946330070496
+ 40%|████      | 4/10 [08:22<12:54, 129.01s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,306.41609781537784,28.577935839909955,1.0074253393153672,8.606910705566406e-05
+20000,292.418519120396,28.954948945174138,0.994307977022093,2.9236130714416504
+30000,301.39658171473985,28.104550953526562,1.024394118876377,5.857248783111572
+40000,299.1886927771841,28.19516513661441,1.021101900661225,8.772049188613892
+50000,293.0708273696922,28.38478401623376,1.0142806333840162,11.68704342842102
+60000,303.38862715705255,28.45730226279314,1.011695924110702,14.60244083404541
+70000,293.21465417244104,28.37083655660215,1.0147792664842785,17.519408464431763
+80000,303.732746852395,27.984071267138336,1.0288044379111592,20.427788257598877
+90000,302.54422195715426,28.572907289888793,1.0076026362442354,23.34516477584839
+100000,298.11751744732476,27.611715328466225,1.0426783112881424,26.26168465614319
+110000,300.997105048317,28.212435292239697,1.0204768362684837,29.179255723953247
+120000,302.28287276750376,28.833333368957483,0.9985018499959525,32.097327709198
+130000,300.9797099163906,28.866736912917766,0.9973464197669878,35.016273021698
+140000,298.16398000915615,28.92348524291491,0.9953896105071398,37.92897868156433
+150000,309.70606880827825,28.578580837580827,1.0074026024621578,40.845176696777344
+160000,307.3671273389331,28.74832288900093,1.0014544786356616,43.762723207473755
+170000,289.0235944247938,28.300942864266318,1.017285425737721,46.67788648605347
+180000,297.39864579647355,28.887598714885765,0.9966261645561608,49.598843574523926
+190000,304.29007589477413,28.423848463370433,1.0128866521208655,52.51207900047302
+200000,305.43849163699576,28.841693019177292,0.9982124381987934,55.43481755256653
+210000,302.4160353148544,27.91132765002626,1.0314857491355125,58.3470344543457
+220000,302.154030596726,28.39628894051928,1.0138696915910308,61.26278591156006
+230000,303.0285583881442,28.122583034698202,1.0237372817046086,64.17710852622986
+240000,301.53237423542276,28.60373623304421,1.0065166478914223,67.09468936920166
+250000,298.67552092961796,28.653358127036736,1.0047735620659515,70.00917029380798
+260000,290.4802621365237,28.35619992720806,1.015303065444593,72.92645311355591
+270000,296.3846794868381,28.528217728358694,1.0091810496046174,75.84003186225891
+280000,300.1959596444441,28.91032825694988,0.9958426087235136,78.75747656822205
+290000,295.669597665117,28.236769149791268,1.0195974106572636,81.67941284179688
+300000,298.79920402227145,28.090615432693085,1.0249023122842251,84.5957899093628
+310000,298.56835409235305,28.790748327306023,0.9999787564795125,87.51312017440796
+320000,301.3071153479231,28.84360404837961,0.9981463017646528,90.43034553527832
+330000,297.61663831236274,28.42621886958621,1.0128021895046067,93.34556674957275
+340000,294.15012382550503,28.535287334746727,1.008931025390343,96.26252293586731
+350000,303.0230419021096,28.55522329440268,1.0082266355836007,99.17996597290039
+360000,303.123344345295,28.541719052593784,1.008703668388107,102.092702627182
+370000,297.75673513437283,28.39000576206391,1.0140940777449523,105.00926494598389
+380000,303.90060598943853,28.353879694667654,1.0153861489321503,107.93452429771423
+390000,305.98426709953617,28.568362471843734,1.0077629314185899,110.85239005088806
+400000,295.15630065239753,28.33803123733682,1.015954018447181,113.7663345336914
+410000,299.16859142936056,28.2426169078444,1.0193862985287885,116.6828248500824
+420000,295.65652400361176,28.452201909567858,1.0118772811313623,119.59840178489685
+430000,302.55448532470893,28.3073577639981,1.0170548926000427,122.51156663894653
+440000,292.3509243502691,28.219739438635386,1.0202127051193735,125.42233395576477
+450000,296.71861513231823,29.02163184391111,0.9920233591721479,128.3401379585266
+460000,307.8786016949341,28.439963244915173,1.0123127256713846,131.26450157165527
+470000,291.42314996588675,28.85157380749377,0.9978705807367868,134.18015313148499
+480000,298.70442290628057,28.323827143171318,1.01646350844205,137.1122329235077
+490000,299.69196783772094,28.509678741401128,1.0098372897006966,140.03165340423584
+500000,296.64786887453033,28.598103796290022,1.0067148827604777,142.9525818824768
+ 50%|█████     | 5/10 [10:50<11:18, 135.71s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,303.00046233990236,28.56435622410065,1.0079042735842558,8.392333984375e-05
+20000,303.7740819835215,28.397533213111313,1.0138252676525263,3.0528619289398193
+30000,296.7506978523418,28.820820560861705,0.9989353581955507,6.113180875778198
+40000,309.3859577156326,28.769394853338195,1.000720969531046,9.16568112373352
+50000,297.0713419313553,29.022960659627564,0.9919779394010151,12.217867374420166
+60000,297.9749877192508,28.650923998529834,1.0048589257341713,15.270511627197266
+70000,303.2684979047904,28.799150135482662,0.9996870246175259,18.321250677108765
+80000,311.0806217124499,28.70402813729702,1.002999877673795,21.372788667678833
+90000,300.36523545580303,28.560583187375155,1.0080374242210992,24.4272141456604
+100000,307.6426847497525,28.334673539787605,1.016074410387221,27.47525978088379
+110000,301.14421772040083,28.145674874560722,1.0228973666030603,30.5272057056427
+120000,299.51290619508745,28.75523092817236,1.0012138933041055,33.58437180519104
+130000,304.31314864622186,29.076686701592447,0.9901450260107292,36.63627815246582
+140000,300.0295286499697,28.39620283029685,1.0138727661057882,39.695058822631836
+150000,295.95886140322966,28.46163728307564,1.0115418316982692,42.74970054626465
+160000,300.51416896237595,29.08642016533234,0.9898136844206289,45.802839040756226
+170000,292.13218185485135,28.617177325313563,1.0060439009471254,48.85502743721008
+180000,303.20368720990507,28.714585725631146,1.0026311013345213,51.908751249313354
+190000,297.2402214606267,29.110362980256017,0.9889995782594971,54.96071434020996
+200000,287.53805498371145,28.995058840446447,0.9929325154634101,58.01463007926941
+210000,306.8163332982243,28.892572146062726,0.9964546100260372,61.063172578811646
+220000,302.60294231738277,28.199099964298004,1.0209594188078475,64.11447191238403
+230000,300.7076514100283,28.927600085570003,0.9952480200670192,67.1587405204773
+240000,295.0570335473506,28.260404826043004,1.0187446672357259,70.20590734481812
+250000,296.2612383384089,29.13107100305328,0.988296541086201,73.25622701644897
+260000,283.8824546968824,28.57539298792058,1.0075149875497524,76.30490851402283
+270000,290.6859759985699,28.786249212518516,1.0001350470464863,79.34916925430298
+280000,296.17378004825775,28.55129880973535,1.0083652201712552,82.39770460128784
+290000,300.22747911376115,28.544485093576487,1.008605922162277,85.4440746307373
+300000,291.9559661529598,28.68328336683255,1.0037252828504664,88.49233365058899
+310000,302.2508910881675,28.207183166861803,1.020666847169523,91.53275728225708
+320000,298.16742768080366,28.199386893010477,1.020949030547541,94.57623958587646
+330000,299.34031850988634,28.26336980852317,1.0186377953336638,97.62179350852966
+340000,300.2980499557358,27.98917530807706,1.0286168275256713,100.66705870628357
+350000,311.34298210259794,28.393192465420395,1.0139802611318582,103.7139585018158
+360000,305.26036889094013,28.40488370068823,1.0135629145264382,106.75776100158691
+370000,302.41209951861714,28.477541596267777,1.0109768995729347,109.80329751968384
+380000,295.9996170521659,28.053474927146365,1.0262591990910501,112.8478171825409
+390000,299.0509488184612,28.65115233424458,1.0048509174984694,115.89375853538513
+400000,309.40366304182623,28.59603676981982,1.0067876518063201,118.93834805488586
+410000,306.6707977252817,29.004683663204446,0.9926030238687781,121.98449611663818
+420000,301.16640895364395,28.925687925908388,0.9953138118684847,125.03012943267822
+430000,299.06541604105246,28.444778764010323,1.0121413476022783,128.08504796028137
+440000,302.98500053819237,28.87783273930808,0.9969632060118337,131.12954926490784
+450000,299.58789524578935,28.77559469418136,1.0005053593653672,134.1763527393341
+460000,293.30157479964356,28.894974358587735,0.9963717687777599,137.22557044029236
+470000,295.8795988668554,28.603189336672227,1.0065358926090864,140.2677628993988
+480000,295.720059282871,28.334687311627874,1.0160739165326627,143.30842900276184
+490000,309.59409436076317,28.44014453089254,1.0123062728876562,146.3549246788025
+500000,303.45537245624473,28.659170146157017,1.0045697961116513,149.4085671901703
+ 60%|██████    | 6/10 [13:23<09:27, 141.80s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,304.3127454339277,28.28881128159222,1.017721685929874,7.939338684082031e-05
+20000,299.08107891007245,28.528120024245837,1.0091845058835127,3.242785692214966
+30000,306.49044342065196,28.105082982212508,1.0243747271152033,6.485743284225464
+40000,301.47122075432037,28.3811434391825,1.0144107397275237,9.72789192199707
+50000,300.6752585775046,28.6191233940405,1.005975491074936,12.967783689498901
+60000,302.9326515029039,28.772857445844433,1.0006005404448333,16.20526623725891
+70000,301.4324443938898,28.171746059341984,1.0219507392196954,19.446593761444092
+80000,307.4241368484693,28.263074041023483,1.0186484551774366,22.686402797698975
+90000,304.33841943546776,28.277272461309305,1.0181369773144318,25.925161123275757
+100000,297.98649771207147,28.72555727218326,1.0022481526697258,29.1678786277771
+110000,304.20000274636686,29.220446816870155,0.9852736643928511,32.415812253952026
+120000,301.30511610199875,28.41548064111571,1.0131849281055714,35.65737342834473
+130000,295.46332323405414,28.512390504153082,1.009741245872055,38.90258026123047
+140000,301.3988375824355,28.36876356023135,1.0148534196539123,42.139565229415894
+150000,302.92239871484225,28.543430627052786,1.0086431826161593,45.3877170085907
+160000,301.68403921909515,28.546284554022424,1.0085423430839198,48.63339185714722
+170000,292.5588464833451,28.919385037979957,0.9955307373460349,51.8807590007782
+180000,296.85867065119766,28.2761498078604,1.0181774006039108,55.12770485877991
+190000,299.59768854491693,28.77635935525774,1.00047877339264,58.36798357963562
+200000,292.70505891367577,28.534194285776255,1.0089696741430476,61.61336612701416
+210000,298.1436386850834,28.546219742230207,1.0085446328945276,64.85648322105408
+220000,304.7620736787226,28.610553634453385,1.0062768123362855,68.09876799583435
+230000,310.0412338894919,28.56099396139878,1.008022926280682,71.34589219093323
+240000,299.60010413113923,28.35117377541443,1.015483060366986,74.5868706703186
+250000,304.57933348434653,28.55896329772697,1.0080946009950407,77.83155345916748
+260000,304.36294630151735,28.322280323444534,1.0165190225386713,81.07735347747803
+270000,291.6086229044916,28.25373974634435,1.0189849899137382,84.3198595046997
+280000,296.717749115084,28.587740985697565,1.0070798082596932,87.55834412574768
+290000,303.5165239343545,28.788354537049077,1.0000619060531128,90.8015148639679
+300000,295.24267352013976,28.031541357980476,1.027062206204998,94.04436755180359
+310000,301.25213860720316,28.352876964737597,1.0154220591533023,97.28428888320923
+320000,296.63543626362724,28.68831264501124,1.0035493222171277,100.52641201019287
+330000,301.3331770073755,28.28963803958957,1.0176919432537135,103.76443147659302
+340000,302.3464346010173,28.968039037593424,0.993858668620666,107.00715208053589
+350000,297.30259654374464,28.274353763531387,1.018242077298614,110.24628114700317
+360000,296.90591332511826,28.434350861555586,1.012512536355438,113.48535799980164
+370000,310.46972440557806,28.331866576109814,1.016175077385501,116.7254102230072
+380000,300.0563566851464,28.582205454643532,1.0072748499460795,119.9706826210022
+390000,296.53284250729257,28.446060214707813,1.0120957522113505,123.20906090736389
+400000,299.6319614910542,28.72989880329205,1.0020966975057752,126.44959735870361
+410000,306.0428769559291,28.506889189826015,1.0099361076805657,129.69295382499695
+420000,299.77774042597343,28.950924273128877,0.9944462027824089,132.93689799308777
+430000,305.8169026137307,28.222282536291086,1.02012077419439,136.18126463890076
+440000,301.945396469389,28.74588368978545,1.001539455914669,139.42398738861084
+450000,296.1259196950651,28.7640613199322,1.0009065267325032,142.66200137138367
+460000,293.85417532590935,28.336337824744017,1.0160147330440772,145.90524411201477
+470000,298.051194412244,28.383645658053084,1.0143213122548853,149.15005660057068
+480000,303.9109030793655,28.550145021770295,1.0084059709154116,152.38967299461365
+490000,309.16926906801007,28.52457942931487,1.0093097702561145,155.62988948822021
+500000,297.06165400672563,28.766872687709046,1.0008087087879725,158.8759367465973
+ 70%|███████   | 7/10 [16:06<07:26, 148.83s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,298.03393707591607,28.493469042805547,1.0104117777727537,8.153915405273438e-05
+20000,300.87412592395094,28.512706242545352,1.0097300643982634,3.405935049057007
+30000,296.9348277879429,28.560744901915633,1.0080317165860426,6.81597900390625
+40000,296.43597357128385,28.66655686717454,1.0043109412773965,10.224157571792603
+50000,300.3825802456866,28.681176782847345,1.0037990047769552,13.626410484313965
+60000,308.43923748956985,28.618396949969142,1.006001026569908,17.03148651123047
+70000,311.38837373177205,28.313595965519063,1.016830809675866,20.436708450317383
+80000,308.4146698467992,28.458895416406122,1.0116392884966645,23.84187650680542
+90000,296.5472429157862,28.69013149298513,1.0034857009105518,27.253417253494263
+100000,295.4089245949318,28.837860249622512,0.9983451081753177,30.66372847557068
+110000,290.6781687207126,28.144413475310465,1.0229432116505135,34.07157063484192
+120000,298.26304956472165,28.54295459830551,1.0086600043908294,37.47979950904846
+130000,305.14567035831783,28.610243789225454,1.0062877101835943,40.88756322860718
+140000,302.0765624373533,28.431030660357905,1.012630778475326,44.29312705993652
+150000,300.4931562833297,28.78294618538281,1.0002498189387898,47.699786901474
+160000,304.449246057196,28.323977147155546,1.0164581252440867,51.10879349708557
+170000,304.16999072105136,28.934554780061323,0.9950088027721526,54.51319432258606
+180000,299.33130040524014,28.359477396951622,1.0151857281244805,57.92304229736328
+190000,293.89116744713635,28.410109018731642,1.0133764953690207,61.33016562461853
+200000,299.933948269381,28.40444308545494,1.0135786371110596,64.73657274246216
+210000,292.50449193306395,29.32071898539956,0.9819041860736878,68.14281558990479
+220000,302.0390971666281,28.499765255182368,1.0101885560344717,71.55653786659241
+230000,309.9126974530582,28.508900368033167,1.009864861106192,74.96625351905823
+240000,301.00548931266974,28.467811301306803,1.0113224513727361,78.37371325492859
+250000,295.92388829531944,28.331218030070797,1.0161983392276388,81.78320622444153
+260000,308.87582329624036,28.90712102482175,0.9959530970148421,85.19098258018494
+270000,300.118367765641,28.732516065137606,1.0020054159261877,88.59642291069031
+280000,297.83772204439833,28.714210170946547,1.0026442148001118,92.00061559677124
+290000,299.83570131420504,28.755314682566024,1.0012109771105782,95.40369939804077
+300000,299.7927122820128,28.82938216054663,0.9986386995782983,98.81112432479858
+310000,295.7506462524478,28.363096354295447,1.0150561966445515,102.2164351940155
+320000,306.62715783388006,28.77627014458881,1.0004818750239555,105.62165832519531
+330000,301.4943259810177,28.60432816872912,1.0064958191162166,109.02698826789856
+340000,304.8598253156337,28.708328183419123,1.0028496444137143,112.44021654129028
+350000,298.8785572299651,28.651177016362446,1.0048500518499561,115.84737658500671
+360000,301.79554746087695,28.46923289325702,1.011271951667973,119.25898885726929
+370000,307.4680830359722,28.750528493109453,1.0013776518005266,122.66695094108582
+380000,294.0591365748165,28.106608779416145,1.0243191178417268,126.07413220405579
+390000,305.6290842520348,28.847774022796724,0.9980020187243184,129.47408819198608
+400000,291.7885704588673,28.678753677740495,1.0038838170572257,132.87560725212097
+410000,295.8100581946617,28.38198257784812,1.014380747767935,136.28198337554932
+420000,305.3963580685969,28.531185519386824,1.009076075401469,139.69063067436218
+430000,309.1131361773188,28.337213724880687,1.0159833281412463,143.0960304737091
+440000,301.53144563047067,28.39308521317373,1.013984091348274,146.4976029396057
+450000,296.4227577612155,28.3635802468775,1.0150388794314336,149.9048798084259
+460000,303.76272394558043,28.87921758621791,0.9969153985734592,153.3059070110321
+470000,304.176021612658,28.427188942441312,1.0127676278068736,156.70899415016174
+480000,294.8058188619787,28.452691055134846,1.011859885402943,160.11035633087158
+490000,299.6905352511019,28.47316803177708,1.011132188674026,163.51837921142578
+500000,300.62282088758514,28.48075323745334,1.0108628964417237,166.94374012947083
+ 80%|████████  | 8/10 [18:58<05:12, 156.04s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,296.15687406681127,28.29688030135021,1.0174314766804995,8.296966552734375e-05
+20000,296.9217825407442,28.468755706272454,1.0112889023846876,3.588916301727295
+30000,300.9680572227361,28.18041097350984,1.0216365097555673,7.164233446121216
+40000,304.9319883498229,28.729269626929714,1.002118643610324,10.73881721496582
+50000,294.55172504374264,28.41187488455144,1.0133135116017393,14.308227300643921
+60000,301.3905176785661,28.206760566100478,1.0206821390562202,17.88185453414917
+70000,309.94690107766144,28.569808027970684,1.0077119413006796,21.45447325706482
+80000,296.8220942742282,28.38782413804628,1.0141720115797324,25.031686305999756
+90000,301.6187188501392,28.050644190590962,1.0263627642502116,28.606661319732666
+100000,308.08056871689956,28.360169981607864,1.0151609362399823,32.18391680717468
+110000,301.2663215371073,28.673166749505835,1.004079422477821,35.75603437423706
+120000,298.02597667979074,28.57933032406599,1.0073761835563577,39.33381676673889
+130000,302.9686971136376,28.73677093841354,1.0018570552744048,42.90826225280762
+140000,293.4391400756425,28.347859508504346,1.0156017847420562,46.48321461677551
+150000,298.2386257990376,28.950367874205348,0.9944653151059253,50.05805492401123
+160000,292.29305076317615,28.782639634228897,1.0002604721568438,53.63206505775452
+170000,299.6395414223534,28.255506740970894,1.018921266370635,57.21223497390747
+180000,294.3805697611005,28.101032568739083,1.0245223779599326,60.787187576293945
+190000,295.71841487345176,27.985875718077956,1.0287381034804137,64.36405515670776
+200000,299.83811231686354,28.528890524031084,1.0091572501287052,67.93523049354553
+210000,304.1046215206357,28.658463001994246,1.0045945837517758,71.50674510002136
+220000,298.5998322020415,28.46414314975926,1.011452779694778,75.08100199699402
+230000,295.3397348430038,28.875985286141006,0.997026990600105,78.665522813797
+240000,306.71397345033046,28.649919205564128,1.0048941675501382,82.2471649646759
+250000,300.32858247924315,28.43498507463746,1.0124899533052119,85.82828569412231
+260000,302.95723789937784,28.138962467783898,1.0231413735817625,89.41506695747375
+270000,308.4668214405484,28.91138971841495,0.9958060470582072,93.00311756134033
+280000,300.56876270228327,28.71719025737579,1.0025401667929388,96.59183764457703
+290000,292.56544379932234,28.46313603906365,1.0114885679126027,100.17436814308167
+300000,295.1087582221227,28.488977710222503,1.0105710707942852,103.76076006889343
+310000,306.8734792006809,28.69943064099151,1.0031605529251517,107.343594789505
+320000,306.4664928276775,28.63610803207976,1.0053788272554973,110.93209552764893
+330000,304.7880678980895,28.471603042854884,1.0111877672331884,114.51347231864929
+340000,299.6904899074894,28.572233316227692,1.0076264039921103,118.10471630096436
+350000,305.53643689195496,28.334495389936656,1.0160807988371394,121.69401669502258
+360000,297.3267468384555,28.490598251592694,1.0105135896486357,125.28177905082703
+370000,302.80968901300093,28.340935098022452,1.0158499220607218,128.8669571876526
+380000,305.5608031546287,28.48449874007272,1.010729975386626,132.45173740386963
+390000,301.22973701232905,28.481026510053926,1.0108531973133426,136.03615283966064
+400000,303.0278761466307,28.42027974205922,1.0130138398267599,139.61866736412048
+410000,305.9262734894724,28.500929889923906,1.0101472766554336,143.19807600975037
+420000,301.70233473134226,28.72059622844953,1.0024212757092996,146.780668258667
+430000,299.69111543373504,28.67331257970341,1.0040743158093761,150.36711406707764
+440000,295.7679741355703,28.74716412057721,1.001494846228888,153.95091891288757
+450000,297.32458403530654,28.588008469669237,1.007070385507941,157.53807067871094
+460000,305.21552775290576,28.47925494679653,1.0109160778341402,161.12436962127686
+470000,292.7009819500189,28.57574056972228,1.007502732613655,164.7117636203766
+480000,294.2923022731912,28.708722048031284,1.0028358859821969,168.29411244392395
+490000,300.21924837482294,28.643208649954563,1.0051295950218115,171.87430095672607
+500000,295.65892617973515,28.560825406528778,1.00802887523947,175.45448303222656
+ 90%|█████████ | 9/10 [21:58<02:43, 163.59s/it]#"Step","Temperature (K)","Box Volume (nm^3)","Density (g/mL)","Elapsed Time (s)"
+10000,301.1356657257646,28.450564827825673,1.011935505839107,7.605552673339844e-05
+20000,306.1378187925204,28.166091798899156,1.02215589283776,3.754479169845581
+30000,298.273330479818,28.462394344308823,1.0115149260522698,7.513817310333252
+40000,305.7442096921272,28.486244365361586,1.010668038271202,11.26743483543396
+50000,306.47604446422935,28.23980845809245,1.0194876765250835,15.0187246799469
+60000,289.9299603614421,28.317298404043257,1.016697860779802,18.768828868865967
+70000,302.8666384973786,28.448342316408603,1.0120145627553256,22.520713806152344
+80000,295.05756798517484,28.508888889741485,1.0098652676994997,26.27141308784485
+90000,305.3539323909894,28.546610222882634,1.0085308373102821,30.02429461479187
+100000,296.7422234009176,28.548189708142417,1.0084750383399148,33.77448654174805
+110000,298.40323147861915,28.873263480613467,0.9971209776748928,37.52812838554382
+120000,296.15231764141356,28.757297517373658,1.0011419429471975,41.282615184783936
+130000,294.81525688738407,28.38954841783252,1.0141104143935569,45.03672933578491
+140000,301.2909342040579,27.97264011173145,1.0292248638475774,48.791643381118774
+150000,302.9165222786244,28.550149460126377,1.0084058141503907,52.539090633392334
+160000,301.24290597703634,28.76748119180501,1.0007875391834975,56.28793025016785
+170000,291.10872612058716,28.52329761816692,1.0093551277225816,60.03361225128174
+180000,290.4348460513308,28.403069131473497,1.0136276673900593,63.789029359817505
+190000,298.9907797839728,28.716110547162767,1.0025778617605519,67.53460597991943
+200000,295.76139892605727,28.379143515443076,1.0144822268786002,71.28019332885742
+210000,297.46790666620365,29.04137666757522,0.9913488964384511,75.0224986076355
+220000,298.1795532541432,29.075502408286063,0.9901853562554208,78.77118635177612
+230000,297.4619892511055,28.22666085543468,1.01996254030561,82.52124691009521
+240000,303.09811595239705,29.180138652660773,0.9866346782361458,86.26969194412231
+250000,296.77797117942,28.053476601836156,1.026259137827135,90.02256917953491
+260000,303.88260098892476,28.737898832547735,1.0018177347693624,93.77401638031006
+270000,304.2155029151005,28.90594776388216,0.9959935216664031,97.52464604377747
+280000,293.6861477742004,28.598373554057357,1.0067053867953102,101.27842020988464
+290000,300.2445127206986,28.94151900699494,0.9947693727995314,105.02646255493164
+300000,296.7880384349076,28.49219274403792,1.0104570388489496,108.77704644203186
+310000,296.9703029495874,28.439192231871868,1.0123401704141548,112.52557849884033
+320000,301.2162153929894,28.843958194204113,0.998134046534541,116.27826714515686
+330000,301.3268469890863,28.800426945437753,0.9996427054708888,120.02906632423401
+340000,299.0566001445275,28.358372002275555,1.0152252995391935,123.77074265480042
+350000,301.1041283435876,28.676898466166794,1.0039487619074596,127.51921677589417
+360000,297.38755812916406,28.666300749672416,1.0043199142387802,131.26590180397034
+370000,295.48052011859943,29.047105459676146,0.9911533784466477,135.01189136505127
+380000,306.8274813597767,28.669431847154996,1.004210228648499,138.75434732437134
+390000,299.97986755133905,28.398517451455426,1.0137901304062118,142.49766612052917
+400000,302.5263955488874,28.04332494898224,1.0266306425087066,146.24023270606995
+410000,294.9951978129382,28.647519026610503,1.0049783607338247,149.98259329795837
+420000,295.89028225565033,29.0552812681694,0.9908744797454159,153.72543215751648
+430000,298.3448515744889,28.459580251487072,1.0116149449867495,157.4715769290924
+440000,304.1116138179464,28.24781201150227,1.0191988214425591,161.21083188056946
+450000,301.0732320051795,28.37536919523281,1.0146171671764874,164.95696687698364
+460000,293.66698272673983,28.551165625838173,1.0083699239375237,168.70492458343506
+470000,307.24628011998345,28.217116925903852,1.0203075241901904,172.45130395889282
+480000,300.93920669126,28.34458696138664,1.0157190418641275,176.19489645957947
+490000,301.47758091063815,28.73003041261069,1.0020921070037228,179.93860054016113
+500000,303.1217778209245,28.548422258493993,1.008466823482274,183.67795181274414
+100%|██████████| 10/10 [25:07<00:00, 171.31s/it]100%|██████████| 10/10 [25:07<00:00, 150.73s/it]
