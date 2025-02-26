@@ -5,3 +5,5 @@ Lys-Arg, N1(C)CN=C(NC1)NC
 Sulfur-Mediated-Amide, SC[C@@H](NC(=O)C)C(=O)C
 Carboxylic-Carbo, C(=O)(C)NCc1ccc(cc1)CNC(=O)C
 Disulfide, N[C@H](C(=O)O)CSSC[C@@H](N)C(=O)O
+Cys-Arg, CSCC(=O)NCCCC
+Cys-Carboxyl, CSCC(=O)C
